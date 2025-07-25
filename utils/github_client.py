@@ -8,7 +8,7 @@ from common.Logger import logger
 from common.config import Config
 
 
-class GitHubUtils:
+class GitHubClient:
     GITHUB_API_URL = "https://api.github.com/search/code"
 
     def __init__(self, tokens: List[str]):
@@ -197,5 +197,5 @@ class GitHubUtils:
             return None
 
     @staticmethod
-    def create_instance(tokens: List[str]) -> 'GitHubUtils':
-        return GitHubUtils(tokens)
+    def create_instance(tokens: List[str]) -> 'GitHubClient':
+        return GitHubClient(tokens)

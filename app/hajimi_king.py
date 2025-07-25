@@ -13,11 +13,12 @@ from common.Logger import logger
 
 sys.path.append('../')
 from common.config import Config
-from utils.github_utils import GitHubUtils
+from utils.github_client import GitHubClient
 from utils.file_manager import FileManager, Checkpoint
+from utils.sync_utils import sync_utils
 
 # 创建GitHub工具实例和文件管理器
-github_utils = GitHubUtils.create_instance(Config.GITHUB_TOKENS)
+github_utils = GitHubClient.create_instance(Config.GITHUB_TOKENS)
 file_manager = FileManager(Config.DATA_PATH)
 
 # 统计信息
@@ -183,6 +184,13 @@ def process_item(item: Dict[str, Any]) -> tuple:
     if valid_keys:
         file_manager.save_valid_keys(repo_name, file_path, file_url, valid_keys)
         logger.info(f"💾 Saved {len(valid_keys)} valid key(s)")
+        # 添加到同步队列（不阻塞主流程）
+        try:
+            # 添加到两个队列
+            sync_utils.add_keys_to_queue(valid_keys)
+            logger.info(f"📥 Added {len(valid_keys)} key(s) to sync queues")
+        except Exception as e:
+            logger.error(f"📥 Error adding keys to sync queues: {e}")
 
     if rate_limited_keys:
         file_manager.save_rate_limited_keys(repo_name, file_path, file_url, rate_limited_keys)
@@ -248,6 +256,16 @@ def main():
     if not file_manager.check():
         logger.error("❌ FileManager check failed. Exiting...")
         sys.exit(1)
+
+    # 2.5. 显示SyncUtils状态和队列信息
+    if sync_utils.balancer_enabled:
+        logger.info("🔗 SyncUtils ready for async key syncing")
+        
+    # 显示队列状态
+    checkpoint = file_manager.load_checkpoint()
+    balancer_queue_count = len(checkpoint.wait_send_balancer)
+    gpt_load_queue_count = len(checkpoint.wait_send_gpt_load)
+    logger.info(f"📊 Queue status - Balancer: {balancer_queue_count}, GPT Load: {gpt_load_queue_count}")
 
     # 3. 显示系统信息
     search_queries = file_manager.get_search_queries()
@@ -364,6 +382,8 @@ def main():
             checkpoint.update_scan_time()
             file_manager.save_checkpoint(checkpoint)
             logger.info(f"📊 Final stats - Valid keys: {total_keys_found}, Rate limited: {total_rate_limited_keys}")
+            logger.info("🔚 Shutting down sync utils...")
+            sync_utils.shutdown()
             break
         except Exception as e:
             logger.error(f"💥 Unexpected error: {e}")

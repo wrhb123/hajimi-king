@@ -16,11 +16,25 @@ class Config:
     GITHUB_TOKENS = [token.strip() for token in GITHUB_TOKENS_STR.split(',') if token.strip()]
     DATA_PATH = os.getenv('DATA_PATH', 'data')
     PROXY = os.getenv("PROXY", "")
+    
+    # Gemini Balancer配置
+    GEMINI_BALANCER_URL = os.getenv("GEMINI_BALANCER_URL", "")
+    GEMINI_BALANCER_AUTH = os.getenv("GEMINI_BALANCER_AUTH", "")
+    
+    # GPT Load Balancer Configuration
+    GPT_LOAD_URL = os.getenv('GPT_LOAD_URL', '')
+    GPT_LOAD_AUTH = os.getenv('GPT_LOAD_AUTH', '')
+
     # 文件前缀配置
     VALID_KEY_DETAIL_PREFIX = os.getenv("VALID_KEY_DETAIL_PREFIX", "keys_valid_detail_")
     VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys_valid_")
     RATE_LIMITED_KEY_PREFIX = os.getenv("RATE_LIMITED_KEY_PREFIX", "gemini_key_429_")
     RATE_LIMITED_KEY_DETAIL_PREFIX = os.getenv("RATE_LIMITED_KEY_DETAIL_PREFIX", "gemini_key_429_detail_")
+    
+    # 新增：外部应用发送日志文件前缀
+    KEYS_SEND_LOG_PREFIX = os.getenv("KEYS_SEND_LOG_PREFIX", "keys_send_")
+    KEYS_SEND_DETAIL_PREFIX = os.getenv("KEYS_SEND_DETAIL_PREFIX", "keys_send_detail_")
+    
     # 日期范围过滤器配置 (单位：天)
     DATE_RANGE_DAYS = int(os.getenv("DATE_RANGE_DAYS", "730"))  # 默认730天 (约2年)
 
@@ -107,6 +121,16 @@ class Config:
         else:
             logger.info(f"✅ Hajimi check model: {cls.HAJIMI_CHECK_MODEL}")
         
+        # 检查Gemini Balancer配置
+        if cls.GEMINI_BALANCER_URL:
+            logger.info(f"✅ Gemini Balancer URL: {cls.GEMINI_BALANCER_URL}")
+            if not cls.GEMINI_BALANCER_AUTH:
+                logger.warning("⚠️ Gemini Balancer Auth: Missing (Balancer功能将被禁用)")
+            else:
+                logger.info(f"✅ Gemini Balancer Auth: ****")
+        else:
+            logger.info("ℹ️ Gemini Balancer URL: Not configured (Balancer功能将被禁用)")
+        
         if errors:
             logger.error("❌ Configuration check failed:")
             for error in errors:
@@ -118,16 +142,19 @@ class Config:
         return True
 
 
-logger.info(f"*" * 30 + " CONFIG START" + "*" * 30)
+logger.info(f"*" * 30 + " CONFIG START " + "*" * 30)
 logger.info(f"GITHUB_TOKENS: Found {len(Config.GITHUB_TOKENS)} tokens")
 logger.info(f"Valid key detail prefix: {Config.VALID_KEY_DETAIL_PREFIX}")
 logger.info(f"Valid key log prefix: {Config.VALID_KEY_PREFIX}")
 logger.info(f"Rate limited key prefix: {Config.RATE_LIMITED_KEY_PREFIX}")
+logger.info(f"Keys send log prefix: {Config.KEYS_SEND_LOG_PREFIX}")
+logger.info(f"Keys send detail prefix: {Config.KEYS_SEND_DETAIL_PREFIX}")
+logger.info(f"Gemini Balancer URL: {Config.GEMINI_BALANCER_URL or 'Not configured'}")
 logger.info(f"Date range filter: {Config.DATE_RANGE_DAYS} days")
 logger.info(f"Queries file: {Config.QUERIES_FILE}")
 logger.info(f"Scanned SHAs file: {Config.SCANNED_SHAS_FILE}")
 logger.info(f"File path blacklist: {len(Config.FILE_PATH_BLACKLIST)} items")
-logger.info(f"*" * 30 + " CONFIG END" + "*" * 30)
+logger.info(f"*" * 30 + " CONFIG END " + "*" * 30)
 
 # 创建全局配置实例
 config = Config()
