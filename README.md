@@ -209,6 +209,8 @@ FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,
 
 编辑 `queries.txt` 文件自定义搜索规则：
 
+⚠️ **重要提醒**：query 是本项目的核心！好的表达式可以让搜索更高效，需要发挥自己的想象力！🧠💡
+
 ```bash
 # GitHub搜索查询配置文件
 # 每行一个查询语句，支持GitHub搜索语法
@@ -218,7 +220,8 @@ FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,
 AIzaSy in:file
 ```
 
-> 📖 **搜索语法参考**：[GitHub Code Search Syntax](https://docs.github.com/en/search-github/searching-on-github/searching-code) 📚
+> 📖 **搜索语法参考**：[GitHub Code Search Syntax](https://docs.github.com/en/search-github/searching-on-github/searching-code) 📚  
+> 🎯 **核心提示**：创造性的查询表达式是成功的关键，多尝试不同的组合！
 
 ---
 
