@@ -6,7 +6,6 @@ from typing import List
 
 import requests
 
-from app.hajimi_king import file_manager
 from common.Logger import logger
 from common.config import Config
 
@@ -65,6 +64,7 @@ class SyncUtils:
 
         self.saving_checkpoint = True  # Acquire the lock
         try:
+            from app.hajimi_king import file_manager
             checkpoint = file_manager.load_checkpoint()
 
             # Gemini Balancer
