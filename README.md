@@ -15,24 +15,24 @@
 ### 1. 环境准备 🔧
 
 ```bash
-# 确保已安装Python 🐍
+# 确保已安装Python
 python --version
 
-# 安装uv包管理器（如果未安装）📦
+# 安装uv包管理器（如果未安装）
 pip install uv
 ```
 
 ### 2. 项目设置 📁
 
 ```bash
-# 克隆项目 📥
+# 克隆项目
 git clone <repository-url>
 cd hajimi-king
 
-# 复制配置文件 📋
+# 复制配置文件
 cp env.example .env
 
-# 复制查询文件 📝
+# 复制查询文件
 cp queries.example queries.txt
 ```
 
@@ -41,10 +41,10 @@ cp queries.example queries.txt
 编辑 `.env` 文件，**必须**配置GitHub Token：
 
 ```bash
-# 必填：GitHub访问令牌 🔐
+# 必填：GitHub访问令牌
 GITHUB_TOKENS=ghp1,ghp2,ghp3
 
-# 可选：其他配置保持默认值即可 😌
+# 可选：其他配置保持默认值即可
 ```
 
 > 💡 **获取GitHub Token**：访问 [GitHub Settings > Tokens](https://github.com/settings/tokens)，创建具有 `public_repo` 权限的访问令牌 🎫
@@ -52,26 +52,26 @@ GITHUB_TOKENS=ghp1,ghp2,ghp3
 ### 4. 安装依赖并运行 ⚡
 
 ```bash
-# 安装项目依赖 📚
+# 安装项目依赖
 uv pip install -r pyproject.toml
 
-# 创建数据目录 📂
+# 创建数据目录
 mkdir -p data
 
-# 运行程序 🎯
+# 运行程序
 python app/hajimi_king.py
 ```
 
 ### 5. 本地运行管理 🎮
 
 ```bash
-# 查看日志文件 📊
+# 查看日志文件
 tail -f data/keys/keys_valid_detail_*.log
 
-# 查看找到的有效密钥 🗝️
+# 查看找到的有效密钥
 cat data/keys/keys_valid_*.txt
 
-# 停止程序 ⏹️
+# 停止程序
 Ctrl + C
 ```
 
@@ -82,14 +82,14 @@ Ctrl + C
 ### 1. 准备部署脚本 📜
 
 ```bash
-# 将deploy.sh复制到父目录 🏃‍♂️
+# 将deploy.sh复制到父目录
 cd ${deploy_directory}
 
 git clone <repository-url>
 
 cp hajimi-king/first_deploy.sh ./
 
-# 或者直接下载项目到某个目录，确保目录结构如下：🏗️
+# 或者直接下载项目到某个目录，确保目录结构如下：
 # deploy_directory/
 # ├── first_deploy.sh
 # └── hajimi-king/
@@ -100,7 +100,7 @@ cp hajimi-king/first_deploy.sh ./
 ### 2. 一键部署 🚀
 
 ```bash
-# 运行部署脚本 🎬
+# 运行部署脚本
 chmod +x first_deploy.sh
 
 ./first_deploy.sh
@@ -117,19 +117,19 @@ chmod +x first_deploy.sh
 ### 3. Docker服务管理 🎛️
 
 ```bash
-# 查看服务状态 👀
+# 查看服务状态
 docker-compose ps
 
-# 查看实时日志 📺
+# 查看实时日志
 docker-compose logs -f
 
-# 停止服务 🛑
+# 停止服务
 docker-compose down
 
-# 重启服务 🔄
+# 重启服务
 docker-compose up -d
 
-# 进入容器调试 🐛
+# 进入容器调试
 docker-compose exec hajimi-king /bin/bash
 ```
 
@@ -186,16 +186,16 @@ deploy_directory/
 完整的 `.env` 文件示例：
 
 ```bash
-# 必填配置 🔴
+# 必填配置
 GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
 
-# 重要配置（可选修改）🟡
+# 重要配置（可选修改）
 DATA_PATH=./data
 DATE_RANGE_DAYS=730
 QUERIES_FILE=queries.txt
 HAJIMI_CHECK_MODEL=gemini-2.5-flash-preview-05-20
 
-# 高级配置（建议保持默认）🟢
+# 高级配置（建议保持默认）
 PROXY=
 VALID_KEY_DETAIL_PREFIX=logs/keys_valid_detail_
 VALID_KEY_PREFIX=keys/keys_valid_
@@ -207,14 +207,14 @@ FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,
 
 ### 查询配置文件 🔍
 
-编辑 `queries.txt` 文件自定义搜索规则：
+编辑 `queries.txt` 文件自定义搜索规则, 请注意这里的搜索语法直接影响搜索的准确性，请自己深入研究！！！这个是本项目的核心！！！
 
 ```bash
-# GitHub搜索查询配置文件 📋
-# 每行一个查询语句，支持GitHub搜索语法 ✨
-# 以#开头的行为注释，空行会被忽略 💭
+# GitHub搜索查询配置文件
+# 每行一个查询语句，支持GitHub搜索语法
+# 以#开头的行为注释，空行会被忽略
 
-# 基础搜索 🎯
+# 基础搜索
 AIzaSy in:file
 ```
 
