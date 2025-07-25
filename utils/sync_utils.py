@@ -1,6 +1,7 @@
 import json
 import threading
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
@@ -8,6 +9,7 @@ import requests
 
 from common.Logger import logger
 from common.config import Config
+from utils.file_manager import FileManager
 
 
 class SyncUtils:
@@ -33,6 +35,7 @@ class SyncUtils:
         self.batch_interval = 60
         self.batch_timer = None
         self.shutdown_flag = False
+        self.file_manager = FileManager(Config.DATA_PATH)
 
         if not self.balancer_enabled:
             logger.warning("🚫 Gemini Balancer sync disabled - URL or AUTH not configured")
@@ -64,8 +67,7 @@ class SyncUtils:
 
         self.saving_checkpoint = True  # Acquire the lock
         try:
-            from app.hajimi_king import file_manager
-            checkpoint = file_manager.load_checkpoint()
+            checkpoint = self.file_manager.load_checkpoint()
 
             # Gemini Balancer
             if self.balancer_enabled:
@@ -87,7 +89,7 @@ class SyncUtils:
             else:
                 logger.info(f"🚫 GPT Load Balancer disabled, skipping {len(keys)} key(s) for GPT load balancer queue")
 
-            file_manager.save_checkpoint(checkpoint)
+            self.file_manager.save_checkpoint(checkpoint)
         finally:
             self.saving_checkpoint = False  # Release the lock
 
@@ -235,7 +237,7 @@ class SyncUtils:
         self.saving_checkpoint = True
         try:
             # 加载checkpoint
-            checkpoint = file_manager.load_checkpoint()
+            checkpoint = self.file_manager.load_checkpoint()
 
             # 发送gemini balancer队列
             if checkpoint.wait_send_balancer and self.balancer_enabled:
@@ -269,8 +271,10 @@ class SyncUtils:
                 logger.info(f"🚫 GPT Load Balancer disabled, skipping {len(checkpoint.wait_send_gpt_load)} key(s) in queue")
 
             # 保存checkpoint
-            file_manager.save_checkpoint(checkpoint)
+            self.file_manager.save_checkpoint(checkpoint)
         except Exception as e:
+            stacktrace = traceback.format_exc()
+            logger.error(f"❌ Batch send worker error: {e}\n{stacktrace}")
             logger.error(f"❌ Batch send worker error: {e}")
         finally:
             self.saving_checkpoint = False  # Release the lock
