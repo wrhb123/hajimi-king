@@ -298,7 +298,7 @@ class FileManager:
         if self._keys_valid_filename:
             with open(self._keys_valid_filename, "a", encoding="utf-8") as f:
                 for key in valid_keys:
-                    f.write(f"KEY: {key}\n")
+                    f.write(f"{key}\n")
 
     def save_rate_limited_keys(self, repo_name: str, file_path: str, file_url: str, rate_limited_keys: List[str]) -> None:
         """保存被限流的API密钥"""
