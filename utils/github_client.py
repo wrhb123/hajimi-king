@@ -176,7 +176,8 @@ class GitHubClient:
                 metadata_response = requests.get(metadata_url, headers=headers, proxies=proxies)
             else:
                 metadata_response = requests.get(metadata_url, headers=headers)
-            logger.info(f"requesting metadata from: {metadata_url},proxies: {proxies},response status: {metadata_response.status_code},text: {metadata_response.text},response headers: {metadata_response.headers}")
+            logger.info(
+                f"requesting metadata from: {metadata_url},proxies: {proxies},response status: {metadata_response.status_code},text: {metadata_response.text},response headers: {metadata_response.headers}")
             metadata_response.raise_for_status()
             file_metadata = metadata_response.json()
 
@@ -187,9 +188,9 @@ class GitHubClient:
                 return None
             logger.info(f"⏳ checking for keys from:  {download_url}")
             if proxies:
-                content_response = requests.get(download_url, headers=headers, proxies=proxies)
+                content_response = requests.get(download_url, headers=headers, proxies=proxies, timeout=30)
             else:
-                content_response = requests.get(download_url, headers=headers)
+                content_response = requests.get(download_url, headers=headers, timeout=30)
             logger.info(f"⏳ checking for keys from:  {download_url},status: {content_response.status_code},content_response text: {content_response.text}")
             content_response.raise_for_status()
             return content_response.text
