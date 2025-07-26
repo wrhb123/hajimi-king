@@ -150,6 +150,8 @@ def process_item(item: Dict[str, Any]) -> tuple:
 
     keys = extract_keys_from_content(content)
 
+    logger.info(f"extract_keys_from_content from file: {file_url}, keys: {keys}")
+
     # 过滤占位符密钥
     filtered_keys = []
     for key in keys:
