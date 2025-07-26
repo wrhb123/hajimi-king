@@ -142,6 +142,7 @@ def process_item(item: Dict[str, Any]) -> tuple:
     file_path = item["path"]
     time.sleep(delay)
 
+    logger.info(f"🔍 Processing file: {file_url}")
     content = github_utils.get_file_content(item)
     if not content:
         logger.warning(f"⚠️ Failed to fetch content for file: {file_url}")
@@ -161,6 +162,7 @@ def process_item(item: Dict[str, Any]) -> tuple:
     keys = filtered_keys
 
     if not keys:
+        logger.info(f"🔑 No keys found in file: {file_url}")
         return 0, 0
 
     logger.info(f"🔑 Found {len(keys)} suspected key(s), validating...")
