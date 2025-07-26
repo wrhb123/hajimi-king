@@ -171,7 +171,7 @@ class GitHubClient:
         try:
             # 获取proxy配置
             proxies = Config.get_requests_proxies()
-
+            logger.info(f"requesting metadata from: {metadata_url},proxies: {proxies}")
             if proxies:
                 metadata_response = requests.get(metadata_url, headers=headers, proxies=proxies)
             else:
