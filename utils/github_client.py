@@ -187,6 +187,9 @@ class GitHubClient:
                 logger.warning(f"⚠️ No download URL found for file: {metadata_url}")
                 return None
             logger.info(f"⏳ checking for keys from:  {download_url}")
+
+            token = self._next_token()
+            headers["Authorization"] = f"token {token}"
             if proxies:
                 content_response = requests.get(download_url, headers=headers, proxies=proxies, timeout=30)
             else:
