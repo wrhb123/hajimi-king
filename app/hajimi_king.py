@@ -207,10 +207,14 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
     try:
         time.sleep(random.uniform(0.5, 1.5))
 
+        client_options = {
+            "api_endpoint": "generativelanguage.googleapis.com",
+            "proxies": "http://127.0.0.1:1080"
+        }
         genai.configure(
             api_key=api_key,
             transport="rest",
-            client_options={"api_endpoint": "generativelanguage.googleapis.com"},
+            client_options=client_options,
         )
 
         model = genai.GenerativeModel(Config.HAJIMI_CHECK_MODEL)
