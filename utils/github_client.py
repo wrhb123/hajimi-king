@@ -192,7 +192,7 @@ class GitHubClient:
             content_response.raise_for_status()
             return content_response.text
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.error(f"❌ Failed to fetch file content: {metadata_url}, {type(e).__name__}")
             return None
 
