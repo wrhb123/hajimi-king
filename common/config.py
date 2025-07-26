@@ -1,6 +1,6 @@
 import os
 import random
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
@@ -15,7 +15,7 @@ class Config:
 
     # 获取GitHub tokens列表
     GITHUB_TOKENS = [token.strip() for token in GITHUB_TOKENS_STR.split(',') if token.strip()]
-    DATA_PATH = os.getenv('DATA_PATH', 'data')
+    DATA_PATH = os.getenv('DATA_PATH', '/app/data')
     PROXY_LIST_STR = os.getenv("PROXY_LIST", "")
     
     # 解析代理列表，支持格式：http://user:pass@host:port,http://host:port,socks5://user:pass@host:port
@@ -36,14 +36,13 @@ class Config:
     GPT_LOAD_AUTH = os.getenv('GPT_LOAD_AUTH', '')
 
     # 文件前缀配置
-    VALID_KEY_DETAIL_PREFIX = os.getenv("VALID_KEY_DETAIL_PREFIX", "keys_valid_detail_")
-    VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys_valid_")
-    RATE_LIMITED_KEY_PREFIX = os.getenv("RATE_LIMITED_KEY_PREFIX", "gemini_key_429_")
-    RATE_LIMITED_KEY_DETAIL_PREFIX = os.getenv("RATE_LIMITED_KEY_DETAIL_PREFIX", "gemini_key_429_detail_")
-    
-    # 新增：外部应用发送日志文件前缀
-    KEYS_SEND_LOG_PREFIX = os.getenv("KEYS_SEND_LOG_PREFIX", "keys_send_")
-    KEYS_SEND_DETAIL_PREFIX = os.getenv("KEYS_SEND_DETAIL_PREFIX", "keys_send_detail_")
+    VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys/keys_valid_")
+    RATE_LIMITED_KEY_PREFIX = os.getenv("RATE_LIMITED_KEY_PREFIX", "keys/key_429_")
+    KEYS_SEND_PREFIX = os.getenv("KEYS_SEND_PREFIX", "keys/keys_send_")
+
+    VALID_KEY_DETAIL_PREFIX = os.getenv("VALID_KEY_DETAIL_PREFIX", "logs/keys_valid_detail_")
+    RATE_LIMITED_KEY_DETAIL_PREFIX = os.getenv("RATE_LIMITED_KEY_DETAIL_PREFIX", "logs/key_429_detail_")
+    KEYS_SEND_DETAIL_PREFIX = os.getenv("KEYS_SEND_DETAIL_PREFIX", "logs/keys_send_detail_")
     
     # 日期范围过滤器配置 (单位：天)
     DATE_RANGE_DAYS = int(os.getenv("DATE_RANGE_DAYS", "730"))  # 默认730天 (约2年)
@@ -123,51 +122,18 @@ class Config:
         else:
             logger.info(f"✅ GitHub tokens: {len(cls.GITHUB_TOKENS)} configured")
         
-
-        
-        # 检查数据路径
-        if not cls.DATA_PATH:
-            errors.append("Data path not configured. Please set DATA_PATH.")
-            logger.error("❌ Data path: Missing")
-        else:
-            logger.info(f"✅ Data path: {cls.DATA_PATH}")
-        
-        # 检查文件前缀配置
-        required_prefixes = [
-            (cls.VALID_KEY_DETAIL_PREFIX, "VALID_KEY_DETAIL_PREFIX"),
-            (cls.VALID_KEY_PREFIX, "VALID_KEY_LOG_PREFIX"),
-            (cls.RATE_LIMITED_KEY_PREFIX, "RATE_LIMITED_KEY_PREFIX"),
-            (cls.RATE_LIMITED_KEY_DETAIL_PREFIX, "RATE_LIMITED_KEY_DETAIL_PREFIX")
-        ]
-        
-        for prefix, name in required_prefixes:
-            if not prefix:
-                errors.append(f"{name} not configured.")
-                logger.error(f"❌ {name}: Missing")
-            else:
-                logger.info(f"✅ {name}: {prefix}")
-        
-        # 检查Hajimi检验模型配置
-        if not cls.HAJIMI_CHECK_MODEL:
-            errors.append("HAJIMI_CHECK_MODEL not configured.")
-            logger.error("❌ Hajimi check model: Missing")
-        else:
-            logger.info(f"✅ Hajimi check model: {cls.HAJIMI_CHECK_MODEL}")
-        
         # 检查Gemini Balancer配置
-        if cls.GEMINI_BALANCER_URL:
-            logger.info(f"✅ Gemini Balancer URL: {cls.GEMINI_BALANCER_URL}")
-            if not cls.GEMINI_BALANCER_AUTH:
-                logger.warning("⚠️ Gemini Balancer Auth: Missing (Balancer功能将被禁用)")
+        if cls.GEMINI_BALANCER_SYNC_ENABLED:
+            logger.info(f"✅ Gemini Balancer enabled, URL: {cls.GEMINI_BALANCER_URL}")
+            if not cls.GEMINI_BALANCER_AUTH or not cls.GEMINI_BALANCER_URL:
+                logger.warning("⚠️ Gemini Balancer Auth or URL Missing (Balancer功能将被禁用)")
             else:
                 logger.info(f"✅ Gemini Balancer Auth: ****")
         else:
             logger.info("ℹ️ Gemini Balancer URL: Not configured (Balancer功能将被禁用)")
-        
+
         if errors:
             logger.error("❌ Configuration check failed:")
-            for error in errors:
-                logger.error(f"   - {error}")
             logger.info("Please check your .env file and configuration.")
             return False
         

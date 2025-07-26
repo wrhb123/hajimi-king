@@ -172,11 +172,13 @@ class GitHubClient:
         try:
             # 获取proxy配置
             proxies = Config.get_random_proxy()
-            
+
+            logger.info(f"🔍 processing file: {metadata_url}")
             if proxies:
                 metadata_response = requests.get(metadata_url, headers=headers, proxies=proxies)
             else:
                 metadata_response = requests.get(metadata_url, headers=headers)
+
             metadata_response.raise_for_status()
             file_metadata = metadata_response.json()
 
@@ -185,7 +187,6 @@ class GitHubClient:
             content = file_metadata.get("content")
             
             if encoding == "base64" and content:
-                logger.info(f"📄 Found base64 encoded content, decoding directly")
                 try:
                     # 解码base64内容
                     decoded_content = base64.b64decode(content).decode('utf-8')

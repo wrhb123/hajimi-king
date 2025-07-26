@@ -1,4 +1,3 @@
-import os
 import random
 import re
 import sys
@@ -14,12 +13,11 @@ from common.Logger import logger
 sys.path.append('../')
 from common.config import Config
 from utils.github_client import GitHubClient
-from utils.file_manager import FileManager, Checkpoint
+from utils.file_manager import file_manager, Checkpoint
 from utils.sync_utils import sync_utils
 
 # 创建GitHub工具实例和文件管理器
 github_utils = GitHubClient.create_instance(Config.GITHUB_TOKENS)
-file_manager = FileManager(Config.DATA_PATH)
 
 # 统计信息
 skip_stats = {
@@ -261,8 +259,7 @@ def main():
 
     # 1. 检查配置
     if not Config.check():
-        logger.error("❌ Configuration check failed. Exiting...")
-        logger.info("You can create GitHub tokens at: https://github.com/settings/tokens")
+        logger.info("❌ Config check failed. Exiting...")
         sys.exit(1)
     # 2. 检查文件管理器
     if not file_manager.check():
@@ -288,8 +285,6 @@ def main():
     if Config.PROXY_LIST:
         logger.info(f"🌐 Proxy: {len(Config.PROXY_LIST)} proxies configured")
 
-    # 4. 加载checkpoint并显示状态
-    checkpoint = file_manager.load_checkpoint()
     if checkpoint.last_scan_time:
         logger.info(f"💾 Checkpoint found - Incremental scan mode")
         logger.info(f"   Last scan: {checkpoint.last_scan_time}")

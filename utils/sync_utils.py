@@ -9,7 +9,7 @@ import requests
 
 from common.Logger import logger
 from common.config import Config
-from utils.file_manager import FileManager
+from utils.file_manager import file_manager
 
 
 class SyncUtils:
@@ -36,7 +36,7 @@ class SyncUtils:
         self.batch_interval = 60
         self.batch_timer = None
         self.shutdown_flag = False
-        self.file_manager = FileManager(Config.DATA_PATH)
+        self.file_manager = file_manager
 
         if not self.balancer_enabled:
             logger.warning("🚫 Gemini Balancer sync disabled - URL or AUTH not configured")
