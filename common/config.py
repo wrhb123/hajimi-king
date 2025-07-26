@@ -1,4 +1,5 @@
 import os
+import random
 from typing import List, Dict, Optional
 
 from dotenv import load_dotenv
@@ -15,11 +16,20 @@ class Config:
     # 获取GitHub tokens列表
     GITHUB_TOKENS = [token.strip() for token in GITHUB_TOKENS_STR.split(',') if token.strip()]
     DATA_PATH = os.getenv('DATA_PATH', 'data')
-    PROXY = os.getenv("PROXY", "")
+    PROXY_LIST_STR = os.getenv("PROXY_LIST", "")
+    
+    # 解析代理列表，支持格式：http://user:pass@host:port,http://host:port,socks5://user:pass@host:port
+    PROXY_LIST = []
+    if PROXY_LIST_STR:
+        for proxy_str in PROXY_LIST_STR.split(','):
+            proxy_str = proxy_str.strip()
+            if proxy_str:
+                PROXY_LIST.append(proxy_str)
     
     # Gemini Balancer配置
     GEMINI_BALANCER_URL = os.getenv("GEMINI_BALANCER_URL", "")
     GEMINI_BALANCER_AUTH = os.getenv("GEMINI_BALANCER_AUTH", "")
+    GEMINI_BALANCER_SYNC_ENABLED = os.getenv("GEMINI_BALANCER_SYNC_ENABLED", "false")
     
     # GPT Load Balancer Configuration
     GPT_LOAD_URL = os.getenv('GPT_LOAD_URL', '')
@@ -52,18 +62,41 @@ class Config:
     FILE_PATH_BLACKLIST = [token.strip().lower() for token in FILE_PATH_BLACKLIST_STR.split(',') if token.strip()]
 
     @classmethod
-    def get_requests_proxies(cls) -> Optional[Dict[str, str]]:
+    def parse_bool(cls, value: str) -> bool:
         """
-        获取requests包格式的proxy配置
+        解析布尔值配置，支持多种格式
+        
+        Args:
+            value: 配置值字符串
+            
+        Returns:
+            bool: 解析后的布尔值
+        """
+        if isinstance(value, bool):
+            return value
+        
+        if isinstance(value, str):
+            value = value.strip().lower()
+            return value in ('true', '1', 'yes', 'on', 'enabled')
+        
+        if isinstance(value, int):
+            return bool(value)
+        
+        return False
+
+    @classmethod
+    def get_random_proxy(cls) -> Optional[Dict[str, str]]:
+        """
+        随机获取一个代理配置
         
         Returns:
             Optional[Dict[str, str]]: requests格式的proxies字典，如果未配置则返回None
         """
-        if not cls.PROXY:
+        if not cls.PROXY_LIST:
             return None
         
-        # 支持多种格式的proxy配置
-        proxy_url = cls.PROXY.strip()
+        # 随机选择一个代理
+        proxy_url = random.choice(cls.PROXY_LIST).strip()
         
         # 返回requests格式的proxies字典
         return {
@@ -143,17 +176,25 @@ class Config:
 
 
 logger.info(f"*" * 30 + " CONFIG START " + "*" * 30)
-logger.info(f"GITHUB_TOKENS: Found {len(Config.GITHUB_TOKENS)} tokens")
-logger.info(f"Valid key detail prefix: {Config.VALID_KEY_DETAIL_PREFIX}")
-logger.info(f"Valid key log prefix: {Config.VALID_KEY_PREFIX}")
-logger.info(f"Rate limited key prefix: {Config.RATE_LIMITED_KEY_PREFIX}")
-logger.info(f"Keys send log prefix: {Config.KEYS_SEND_LOG_PREFIX}")
-logger.info(f"Keys send detail prefix: {Config.KEYS_SEND_DETAIL_PREFIX}")
-logger.info(f"Gemini Balancer URL: {Config.GEMINI_BALANCER_URL or 'Not configured'}")
-logger.info(f"Date range filter: {Config.DATE_RANGE_DAYS} days")
-logger.info(f"Queries file: {Config.QUERIES_FILE}")
-logger.info(f"Scanned SHAs file: {Config.SCANNED_SHAS_FILE}")
-logger.info(f"File path blacklist: {len(Config.FILE_PATH_BLACKLIST)} items")
+logger.info(f"GITHUB_TOKENS: {len(Config.GITHUB_TOKENS)} tokens")
+logger.info(f"DATA_PATH: {Config.DATA_PATH}")
+logger.info(f"PROXY_LIST: {len(Config.PROXY_LIST)} proxies configured")
+logger.info(f"GEMINI_BALANCER_URL: {Config.GEMINI_BALANCER_URL or 'Not configured'}")
+logger.info(f"GEMINI_BALANCER_AUTH: {'Configured' if Config.GEMINI_BALANCER_AUTH else 'Not configured'}")
+logger.info(f"GEMINI_BALANCER_SYNC_ENABLED: {Config.parse_bool(Config.GEMINI_BALANCER_SYNC_ENABLED)}")
+logger.info(f"GPT_LOAD_URL: {Config.GPT_LOAD_URL or 'Not configured'}")
+logger.info(f"GPT_LOAD_AUTH: {'Configured' if Config.GPT_LOAD_AUTH else 'Not configured'}")
+logger.info(f"VALID_KEY_PREFIX: {Config.VALID_KEY_PREFIX}")
+logger.info(f"RATE_LIMITED_KEY_PREFIX: {Config.RATE_LIMITED_KEY_PREFIX}")
+logger.info(f"KEYS_SEND_PREFIX: {Config.KEYS_SEND_PREFIX}")
+logger.info(f"VALID_KEY_DETAIL_PREFIX: {Config.VALID_KEY_DETAIL_PREFIX}")
+logger.info(f"RATE_LIMITED_KEY_DETAIL_PREFIX: {Config.RATE_LIMITED_KEY_DETAIL_PREFIX}")
+logger.info(f"KEYS_SEND_DETAIL_PREFIX: {Config.KEYS_SEND_DETAIL_PREFIX}")
+logger.info(f"DATE_RANGE_DAYS: {Config.DATE_RANGE_DAYS} days")
+logger.info(f"QUERIES_FILE: {Config.QUERIES_FILE}")
+logger.info(f"SCANNED_SHAS_FILE: {Config.SCANNED_SHAS_FILE}")
+logger.info(f"HAJIMI_CHECK_MODEL: {Config.HAJIMI_CHECK_MODEL}")
+logger.info(f"FILE_PATH_BLACKLIST: {len(Config.FILE_PATH_BLACKLIST)} items")
 logger.info(f"*" * 30 + " CONFIG END " + "*" * 30)
 
 # 创建全局配置实例

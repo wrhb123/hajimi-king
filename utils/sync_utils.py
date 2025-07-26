@@ -20,7 +20,8 @@ class SyncUtils:
         # Gemini Balancer 配置
         self.balancer_url = Config.GEMINI_BALANCER_URL.rstrip('/') if Config.GEMINI_BALANCER_URL else ""
         self.balancer_auth = Config.GEMINI_BALANCER_AUTH
-        self.balancer_enabled = bool(self.balancer_url and self.balancer_auth)
+        self.balancer_sync_enabled = Config.parse_bool(Config.GEMINI_BALANCER_SYNC_ENABLED)
+        self.balancer_enabled = bool(self.balancer_url and self.balancer_auth and self.balancer_sync_enabled)
 
         # GPT Load Balancer 配置
         self.gpt_load_url = Config.GPT_LOAD_URL.rstrip('/') if Config.GPT_LOAD_URL else ""

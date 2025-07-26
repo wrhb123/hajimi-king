@@ -1,3 +1,4 @@
+import base64
 import random
 import time
 from typing import Dict, List, Optional, Any
@@ -59,8 +60,8 @@ class GitHubClient:
 
                 try:
                     total_requests += 1
-                    # 获取proxy配置
-                    proxies = Config.get_requests_proxies()
+                    # 获取随机proxy配置
+                    proxies = Config.get_random_proxy()
                     if proxies:
                         response = requests.get(self.GITHUB_API_URL, headers=headers, params=params, timeout=30, proxies=proxies)
                     else:
@@ -170,7 +171,7 @@ class GitHubClient:
 
         try:
             # 获取proxy配置
-            proxies = Config.get_requests_proxies()
+            proxies = Config.get_random_proxy()
             
             if proxies:
                 metadata_response = requests.get(metadata_url, headers=headers, proxies=proxies)
@@ -179,6 +180,20 @@ class GitHubClient:
             metadata_response.raise_for_status()
             file_metadata = metadata_response.json()
 
+            # 检查是否有base64编码的内容
+            encoding = file_metadata.get("encoding")
+            content = file_metadata.get("content")
+            
+            if encoding == "base64" and content:
+                logger.info(f"📄 Found base64 encoded content, decoding directly")
+                try:
+                    # 解码base64内容
+                    decoded_content = base64.b64decode(content).decode('utf-8')
+                    return decoded_content
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to decode base64 content: {e}, falling back to download_url")
+            
+            # 如果没有base64内容或解码失败，使用原有的download_url逻辑
             download_url = file_metadata.get("download_url")
             if not download_url:
                 logger.warning(f"⚠️ No download URL found for file: {metadata_url}")

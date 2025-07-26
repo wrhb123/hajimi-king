@@ -203,10 +203,22 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
     try:
         time.sleep(random.uniform(0.5, 1.5))
 
+        # 获取随机代理配置
+        proxy_config = Config.get_random_proxy()
+        
+        client_options = {
+            "api_endpoint": "generativelanguage.googleapis.com"
+        }
+        
+        # 如果有代理配置，添加到client_options中
+        if proxy_config:
+            # 使用http代理（Gemini API通常使用http代理）
+            client_options["proxies"] = proxy_config.get('http')
+
         genai.configure(
             api_key=api_key,
             transport="rest",
-            client_options={"api_endpoint": "generativelanguage.googleapis.com"},
+            client_options=client_options,
         )
 
         model = genai.GenerativeModel(Config.HAJIMI_CHECK_MODEL)
@@ -273,8 +285,8 @@ def main():
     logger.info(f"🔑 GitHub tokens: {len(Config.GITHUB_TOKENS)} configured")
     logger.info(f"🔍 Search queries: {len(search_queries)} loaded")
     logger.info(f"📅 Date filter: {Config.DATE_RANGE_DAYS} days")
-    if Config.PROXY:
-        logger.info(f"🌐 Proxy: {Config.PROXY}")
+    if Config.PROXY_LIST:
+        logger.info(f"🌐 Proxy: {len(Config.PROXY_LIST)} proxies configured")
 
     # 4. 加载checkpoint并显示状态
     checkpoint = file_manager.load_checkpoint()
