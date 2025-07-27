@@ -152,7 +152,7 @@ docker-compose logs -f
 
 在 `.env` 文件中配置：
 ```bash
-PROXY=http://localhost:1080,proxy2,proxy3   (host模式)
+PROXY=http://localhost:1080
 ```
 
 ---
