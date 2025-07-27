@@ -3,6 +3,7 @@ import random
 import re
 import sys
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import Dict, List, Union, Any
 
@@ -231,6 +232,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         elif "403" in str(e) or "SERVICE_DISABLED" in str(e) or "API has not been used" in str(e):
             return "disabled"
         else:
+            traceback.print_exc()
             return f"error:{e.__class__.__name__}"
 
 
