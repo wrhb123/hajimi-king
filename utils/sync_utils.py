@@ -240,6 +240,7 @@ class SyncUtils:
             # 加载checkpoint
             checkpoint = self.file_manager.load_checkpoint()
 
+            logger.info(f"📥 Starting batch sending, wait_send_balancer length: {len(checkpoint.wait_send_balancer)}, wait_send_gpt_load length: {len(checkpoint.wait_send_gpt_load)}")
             # 发送gemini balancer队列
             if checkpoint.wait_send_balancer and self.balancer_enabled:
                 balancer_keys = list(checkpoint.wait_send_balancer)
