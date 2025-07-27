@@ -182,6 +182,7 @@ PROXY=http://localhost:1080
 
 | 变量名 | 默认值                | 说明                                              |
 |--------|--------------------|-------------------------------------------------|
+| `PROXY` | 空 | 代理服务器地址，支持多个（逗号分隔）和账密认证，格式：`http://user:pass@proxy:port` 🌐 |
 | `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                                     |
 | `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅                       |
 | `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯                    |
@@ -198,7 +199,6 @@ PROXY=http://localhost:1080
 
 | 变量名                              | 默认值                                | 说明 |
 |----------------------------------|------------------------------------|------|
-| `PROXY`                          | 空                                  | 代理服务器地址，支持多个（逗号分隔）和账密认证，格式：`http://user:pass@proxy:port` 🌐 |
 | `VALID_KEY_PREFIX`               | `keys/keys_valid_`                 | 有效密钥文件名前缀 🗝️ |
 | `RATE_LIMITED_KEY_PREFIX`        | `keys/key_429_`                    | 频率限制密钥文件名前缀 ⏰ |
 | `KEYS_SEND_PREFIX`               | `keys/keys_send_`                  | 发送到外部应用的密钥文件名前缀 🚀 |
