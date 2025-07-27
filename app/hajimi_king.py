@@ -395,6 +395,7 @@ def main():
             break
         except Exception as e:
             logger.error(f"💥 Unexpected error: {e}")
+            traceback.print_exc()
             logger.info("🔄 Continuing...")
             continue
 
