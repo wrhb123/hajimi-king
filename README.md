@@ -152,7 +152,14 @@ docker-compose logs -f
 
 在 `.env` 文件中配置：
 ```bash
+# 单个代理
 PROXY=http://localhost:1080
+
+# 多个代理（逗号分隔，支持轮换）
+PROXY=http://proxy1:1080,http://proxy2:1080,socks5://proxy3:1080
+
+# 支持账密认证的代理
+PROXY=http://user:pass@proxy.com:1080,socks5://user:pass@proxy.com:1080
 ```
 
 ---
@@ -187,7 +194,7 @@ PROXY=http://localhost:1080
 
 | 变量名                              | 默认值                                | 说明 |
 |----------------------------------|------------------------------------|------|
-| `PROXY`                          | 空                                  | 代理服务器地址，格式：`http://proxy:port` 🌐 |
+| `PROXY`                          | 空                                  | 代理服务器地址，支持多个（逗号分隔）和账密认证，格式：`http://user:pass@proxy:port` 🌐 |
 | `VALID_KEY_PREFIX`               | `keys/keys_valid_`                 | 有效密钥文件名前缀 🗝️ |
 | `RATE_LIMITED_KEY_PREFIX`        | `keys/key_429_`                    | 频率限制密钥文件名前缀 ⏰ |
 | `KEYS_SEND_PREFIX`               | `keys/keys_send_`                  | 发送到外部应用的密钥文件名前缀 🚀 |
