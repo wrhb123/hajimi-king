@@ -171,7 +171,7 @@ def process_item(item: Dict[str, Any]) -> tuple:
     # 验证每个密钥
     for key in keys:
         validation_result = validate_gemini_key(key)
-        if "ok" in validation_result:
+        if validation_result and "ok" in validation_result:
             valid_keys.append(key)
             logger.info(f"✅ VALID: {key}")
         elif validation_result == "rate_limited":
@@ -223,7 +223,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         response = model.generate_content("hi")
         return "ok"
     except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
-        return False
+        return "not_authorized"
     except google_exceptions.TooManyRequests as e:
         return "rate_limited"
     except Exception as e:
