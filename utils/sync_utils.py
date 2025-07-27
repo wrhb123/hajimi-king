@@ -131,22 +131,20 @@ class SyncUtils:
 
             # 3. 合并新keys（去重）
             existing_keys_set = set(current_api_keys)
-            new_keys_added = []
-
+            new_add_keys_set = set()
             for key in keys:
                 if key not in existing_keys_set:
-                    current_api_keys.append(key)
                     existing_keys_set.add(key)
-                    new_keys_added.append(key)
+                    new_add_keys_set.add(key)
 
-            if len(new_keys_added) == 0:
+            if len(new_add_keys_set) == 0:
                 logger.info(f"ℹ️ All {len(keys)} key(s) already exist in balancer")
                 return "ok"
 
             # 4. 更新配置中的API_KEYS
-            config_data['API_KEYS'] = existing_keys_set
+            config_data['API_KEYS'] = list(existing_keys_set)
 
-            logger.info(f"📝 Updating gemini balancer config with {len(new_keys_added)} new key(s)...")
+            logger.info(f"📝 Updating gemini balancer config with {len(new_add_keys_set)} new key(s)...")
 
             # 5. 发送更新后的配置到服务器
             update_headers = headers.copy()
@@ -187,7 +185,8 @@ class SyncUtils:
             logger.error(f"❌ Invalid JSON response from balancer: {str(e)}")
             return "json_decode_error"
         except Exception as e:
-            logger.error(f"❌ Failed to send keys to balancer: {str(e)}", exc_info=True)
+            logger.error(f"❌ Failed to send keys to balancer: {str(e)}")
+            traceback.print_exc()
             return "exception"
 
     def _send_gpt_load_worker(self, keys: List[str]) -> str:
