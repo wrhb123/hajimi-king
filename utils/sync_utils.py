@@ -166,27 +166,53 @@ class SyncUtils:
             updated_api_keys = updated_config.get('API_KEYS', [])
             updated_keys_set = set(updated_api_keys)
 
-            failed_to_add = [key for key in new_keys_added if key not in updated_keys_set]
+            failed_to_add = [key for key in new_add_keys_set if key not in updated_keys_set]
 
             if failed_to_add:
                 logger.error(f"❌ Failed to add {len(failed_to_add)} key(s): {[key[:10] + '...' for key in failed_to_add]}")
+                # 保存发送结果日志 - 部分成功的情况
+                send_result = {}
+                for key in keys:
+                    if key in failed_to_add:
+                        send_result[key] = "update_failed"
+                    else:
+                        send_result[key] = "ok"
+                self.file_manager.save_keys_send_result(keys, send_result)
                 return "update_failed"
 
-            logger.info(f"✅ All {len(new_keys_added)} new key(s) successfully added to balancer.")
+
+            logger.info(f"✅ All {len(new_add_keys_set)} new key(s) successfully added to balancer.")
+            
+            # 保存发送结果日志
+            send_result = {key: "ok" for key in keys}
+            self.file_manager.save_keys_send_result(keys, send_result)
+            
             return "ok"
 
         except requests.exceptions.Timeout:
             logger.error("❌ Request timeout when connecting to balancer")
+            # 保存发送结果日志
+            send_result = {key: "timeout" for key in keys}
+            self.file_manager.save_keys_send_result(keys, send_result)
             return "timeout"
         except requests.exceptions.ConnectionError:
             logger.error("❌ Connection failed to balancer")
+            # 保存发送结果日志
+            send_result = {key: "connection_error" for key in keys}
+            self.file_manager.save_keys_send_result(keys, send_result)
             return "connection_error"
         except json.JSONDecodeError as e:
             logger.error(f"❌ Invalid JSON response from balancer: {str(e)}")
+            # 保存发送结果日志
+            send_result = {key: "json_decode_error" for key in keys}
+            self.file_manager.save_keys_send_result(keys, send_result)
             return "json_decode_error"
         except Exception as e:
             logger.error(f"❌ Failed to send keys to balancer: {str(e)}")
             traceback.print_exc()
+            # 保存发送结果日志
+            send_result = {key: "exception" for key in keys}
+            self.file_manager.save_keys_send_result(keys, send_result)
             return "exception"
 
     def _send_gpt_load_worker(self, keys: List[str]) -> str:
