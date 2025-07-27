@@ -27,11 +27,12 @@ class Config:
                 PROXY_LIST.append(proxy_str)
     
     # Gemini Balancer配置
+    GEMINI_BALANCER_SYNC_ENABLED = os.getenv("GEMINI_BALANCER_SYNC_ENABLED", "false")
     GEMINI_BALANCER_URL = os.getenv("GEMINI_BALANCER_URL", "")
     GEMINI_BALANCER_AUTH = os.getenv("GEMINI_BALANCER_AUTH", "")
-    GEMINI_BALANCER_SYNC_ENABLED = os.getenv("GEMINI_BALANCER_SYNC_ENABLED", "false")
-    
+
     # GPT Load Balancer Configuration
+    GPT_LOAD_SYNC_ENABLED = os.getenv("GPT_LOAD_SYNC_ENABLED", "false")
     GPT_LOAD_URL = os.getenv('GPT_LOAD_URL', '')
     GPT_LOAD_AUTH = os.getenv('GPT_LOAD_AUTH', '')
 
@@ -132,6 +133,16 @@ class Config:
         else:
             logger.info("ℹ️ Gemini Balancer URL: Not configured (Balancer功能将被禁用)")
 
+        # 检查GPT Load Balancer配置
+        if cls.parse_bool(cls.GPT_LOAD_SYNC_ENABLED):
+            logger.info(f"✅ GPT Load Balancer enabled, URL: {cls.GPT_LOAD_URL}")
+            if not cls.GPT_LOAD_AUTH or not cls.GPT_LOAD_URL:
+                logger.warning("⚠️ GPT Load Balancer Auth or URL Missing (Load Balancer功能将被禁用)")
+            else:
+                logger.info(f"✅ GPT Load Balancer Auth: ****")
+        else:
+            logger.info("ℹ️ GPT Load Balancer: Not configured (Load Balancer功能将被禁用)")
+
         if errors:
             logger.error("❌ Configuration check failed:")
             logger.info("Please check your .env file and configuration.")
@@ -148,6 +159,7 @@ logger.info(f"PROXY_LIST: {len(Config.PROXY_LIST)} proxies configured")
 logger.info(f"GEMINI_BALANCER_URL: {Config.GEMINI_BALANCER_URL or 'Not configured'}")
 logger.info(f"GEMINI_BALANCER_AUTH: {'Configured' if Config.GEMINI_BALANCER_AUTH else 'Not configured'}")
 logger.info(f"GEMINI_BALANCER_SYNC_ENABLED: {Config.parse_bool(Config.GEMINI_BALANCER_SYNC_ENABLED)}")
+logger.info(f"GPT_LOAD_SYNC_ENABLED: {Config.parse_bool(Config.GPT_LOAD_SYNC_ENABLED)}")
 logger.info(f"GPT_LOAD_URL: {Config.GPT_LOAD_URL or 'Not configured'}")
 logger.info(f"GPT_LOAD_AUTH: {'Configured' if Config.GPT_LOAD_AUTH else 'Not configured'}")
 logger.info(f"VALID_KEY_PREFIX: {Config.VALID_KEY_PREFIX}")
