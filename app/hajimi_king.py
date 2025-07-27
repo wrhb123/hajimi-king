@@ -158,7 +158,9 @@ def process_item(item: Dict[str, Any]) -> tuple:
             if "..." in snippet or "YOUR_" in snippet.upper():
                 continue
         filtered_keys.append(key)
-    keys = filtered_keys
+    
+    # 去重处理
+    keys = list(set(filtered_keys))
 
     if not keys:
         return 0, 0

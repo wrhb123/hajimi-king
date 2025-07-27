@@ -8,7 +8,7 @@
 2. **代理支持** 🌐 - 支持多代理轮换，提高访问稳定性和成功率
 3. **增量扫描** 📊 - 支持断点续传，避免重复扫描已处理的文件
 4. **智能过滤** 🚫 - 自动过滤文档、示例、测试文件，专注有效代码
-5. **外部同步** 🔄 - 支持向Gemini-Balancer和GPT-Load同步发现的密钥
+5. **外部同步** 🔄 - 支持向Gemini-Balancer和GPT-Load 同步发现的密钥
 
 ## 📋 目录 🗂️
 
@@ -169,15 +169,19 @@ PROXY=http://localhost:1080
 
 ### 🟡 重要配置（建议了解）🤓
 
-| 变量名 | 默认值                | 说明                                       |
-|--------|--------------------|------------------------------------------|
-| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                              |
-| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅                |
-| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯             |
-| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖                          |
-| `GEMINI_BALANCER_SYNC_ENABLED` | `false` | 是否启用Gemini Balancer同步 🔗                 |
+| 变量名 | 默认值                | 说明                                              |
+|--------|--------------------|-------------------------------------------------|
+| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                                     |
+| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅                       |
+| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯                    |
+| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖                                 |
+| `GEMINI_BALANCER_SYNC_ENABLED` | `false` | 是否启用Gemini Balancer同步 🔗                        |
 | `GEMINI_BALANCER_URL` | 空 | Gemini Balancer服务地址（http://your-gemini-balancer.com） 🌐 |
-| `GEMINI_BALANCER_AUTH` | 空 | Gemini Balancer认证信息(密码） 🔐               |
+| `GEMINI_BALANCER_AUTH` | 空 | Gemini Balancer认证信息(密码） 🔐                      |
+| `GPT_LOAD_SYNC_ENABLED` | `false` | 是否启用GPT Load Balancer同步 🔗                      |
+| `GPT_LOAD_URL` | 空 | GPT Load 服务地址（http://your-gpt-load.com） 🌐      |
+| `GPT_LOAD_AUTH` | 空 | GPT Load 认证Token（页面密码） 🔐                       |
+| `GPT_LOAD_GROUP_NAME` | 空 | GPT Load 组名，多个用逗号分隔（group1,group2） 👥           |
 
 ### 🟢 可选配置（不懂就别动）😅
 
@@ -207,6 +211,17 @@ DATE_RANGE_DAYS=730
 QUERIES_FILE=queries.txt
 HAJIMI_CHECK_MODEL=gemini-2.5-flash
 PROXY=
+
+# Gemini Balancer同步配置
+GEMINI_BALANCER_SYNC_ENABLED=false
+GEMINI_BALANCER_URL=
+GEMINI_BALANCER_AUTH=
+
+# GPT Load Balancer同步配置
+GPT_LOAD_SYNC_ENABLED=false
+GPT_LOAD_URL=
+GPT_LOAD_AUTH=
+GPT_LOAD_GROUP_NAME=group1,group2,group3
 
 # 高级配置（建议保持默认）
 VALID_KEY_PREFIX=keys/keys_valid_

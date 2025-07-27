@@ -26,9 +26,10 @@ class SyncUtils:
         # GPT Load Balancer 配置
         self.gpt_load_url = Config.GPT_LOAD_URL.rstrip('/') if Config.GPT_LOAD_URL else ""
         self.gpt_load_auth = Config.GPT_LOAD_AUTH
-        self.gpt_load_group_name = Config.GPT_LOAD_GROUP_NAME
+        # 解析多个group names (逗号分隔)
+        self.gpt_load_group_names = [name.strip() for name in Config.GPT_LOAD_GROUP_NAME.split(',') if name.strip()] if Config.GPT_LOAD_GROUP_NAME else []
         self.gpt_load_sync_enabled = Config.parse_bool(Config.GPT_LOAD_SYNC_ENABLED)
-        self.gpt_load_enabled = bool(self.gpt_load_url and self.gpt_load_auth and self.gpt_load_group_name and self.gpt_load_sync_enabled)
+        self.gpt_load_enabled = bool(self.gpt_load_url and self.gpt_load_auth and self.gpt_load_group_names and self.gpt_load_sync_enabled)
 
         # 创建线程池用于异步执行
         self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SyncUtils")
@@ -52,7 +53,7 @@ class SyncUtils:
         if not self.gpt_load_enabled:
             logger.warning("🚫 GPT Load Balancer sync disabled - URL, AUTH, GROUP_NAME not configured or sync disabled")
         else:
-            logger.info(f"🔗 GPT Load Balancer enabled - URL: {self.gpt_load_url}, Group: {self.gpt_load_group_name}")
+            logger.info(f"🔗 GPT Load Balancer enabled - URL: {self.gpt_load_url}, Groups: {', '.join(self.gpt_load_group_names)}")
 
         # 启动周期性发送线程
         self._start_batch_sender()
@@ -296,75 +297,97 @@ class SyncUtils:
             str: "ok" if success, otherwise an error code string.
         """
         try:
-            logger.info(f"🔄 Sending {len(keys)} key(s) to GPT load balancer...")
+            logger.info(f"🔄 Sending {len(keys)} key(s) to GPT load balancer for {len(self.gpt_load_group_names)} group(s)...")
 
-            # 1. 获取group ID (使用缓存)
-            group_id = self._get_gpt_load_group_id(self.gpt_load_group_name)
+            # 遍历所有group names，为每个group发送keys
+            all_success = True
+            failed_groups = []
             
-            if group_id is None:
-                logger.error(f"Failed to get group ID for '{self.gpt_load_group_name}'")
-                send_result = {key: "group_not_found" for key in keys}
+            for group_name in self.gpt_load_group_names:
+                logger.info(f"📝 Processing group: {group_name}")
+                
+                # 1. 获取group ID (使用缓存)
+                group_id = self._get_gpt_load_group_id(group_name)
+                
+                if group_id is None:
+                    logger.error(f"Failed to get group ID for '{group_name}'")
+                    failed_groups.append(group_name)
+                    all_success = False
+                    continue
+
+                # 2. 发送keys到指定group
+                add_keys_url = f"{self.gpt_load_url}/api/keys/add-async"
+                keys_text = ",".join(keys)
+                
+                add_headers = {
+                    'Authorization': f'Bearer {self.gpt_load_auth}',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'HajimiKing/1.0'
+                }
+
+                payload = {
+                    "group_id": group_id,
+                    "keys_text": keys_text
+                }
+
+                logger.info(f"📝 Adding {len(keys)} key(s) to group '{group_name}' (ID: {group_id})...")
+
+                try:
+                    # 发送添加keys请求
+                    add_response = requests.post(
+                        add_keys_url,
+                        headers=add_headers,
+                        json=payload,
+                        timeout=60
+                    )
+
+                    if add_response.status_code != 200:
+                        logger.error(f"Failed to add keys to group '{group_name}': HTTP {add_response.status_code} - {add_response.text}")
+                        failed_groups.append(group_name)
+                        all_success = False
+                        continue
+
+                    # 解析添加keys响应
+                    add_data = add_response.json()
+                    
+                    if add_data.get('code') != 0:
+                        logger.error(f"Add keys API returned error for group '{group_name}': {add_data.get('message', 'Unknown error')}")
+                        failed_groups.append(group_name)
+                        all_success = False
+                        continue
+
+                    # 检查任务状态
+                    task_data = add_data.get('data', {})
+                    task_type = task_data.get('task_type')
+                    is_running = task_data.get('is_running')
+                    total = task_data.get('total', 0)
+                    response_group_name = task_data.get('group_name')
+
+                    logger.info(f"✅ Keys addition task started successfully for group '{group_name}':")
+                    logger.info(f"   Task Type: {task_type}")
+                    logger.info(f"   Is Running: {is_running}")
+                    logger.info(f"   Total Keys: {total}")
+                    logger.info(f"   Group Name: {response_group_name}")
+
+                except Exception as e:
+                    logger.error(f"❌ Exception when adding keys to group '{group_name}': {str(e)}")
+                    failed_groups.append(group_name)
+                    all_success = False
+                    continue
+
+            # 根据结果返回状态
+            if all_success:
+                logger.info(f"✅ Successfully sent keys to all {len(self.gpt_load_group_names)} group(s)")
+                # 保存发送结果日志 - 所有密钥都成功
+                send_result = {key: "ok" for key in keys}
                 file_manager.save_keys_send_result(keys, send_result)
-                return "group_not_found"
-
-            # 2. 发送keys到指定group
-            add_keys_url = f"{self.gpt_load_url}/api/keys/add-async"
-            keys_text = ",".join(keys)
-            
-            add_headers = {
-                'Authorization': f'Bearer {self.gpt_load_auth}',
-                'Content-Type': 'application/json',
-                'User-Agent': 'HajimiKing/1.0'
-            }
-
-            payload = {
-                "group_id": group_id,
-                "keys_text": keys_text
-            }
-
-            logger.info(f"📝 Adding {len(keys)} key(s) to group ID {group_id}...")
-
-            # 发送添加keys请求
-            add_response = requests.post(
-                add_keys_url,
-                headers=add_headers,
-                json=payload,
-                timeout=60
-            )
-
-            if add_response.status_code != 200:
-                logger.error(f"Failed to add keys: HTTP {add_response.status_code} - {add_response.text}")
-                send_result = {key: "add_keys_failed_not_200" for key in keys}
+                return "ok"
+            else:
+                logger.error(f"❌ Failed to send keys to {len(failed_groups)} group(s): {', '.join(failed_groups)}")
+                # 保存发送结果日志 - 部分或全部失败
+                send_result = {key: f"partial_failure_{len(failed_groups)}_groups" for key in keys}
                 file_manager.save_keys_send_result(keys, send_result)
-                return "add_keys_failed_not_200"
-
-            # 解析添加keys响应
-            add_data = add_response.json()
-            
-            if add_data.get('code') != 0:
-                logger.error(f"Add keys API returned error: {add_data.get('message', 'Unknown error')}")
-                send_result = {key: "add_keys_api_error" for key in keys}
-                file_manager.save_keys_send_result(keys, send_result)
-                return "add_keys_api_error"
-
-            # 检查任务状态
-            task_data = add_data.get('data', {})
-            task_type = task_data.get('task_type')
-            is_running = task_data.get('is_running')
-            total = task_data.get('total', 0)
-            group_name = task_data.get('group_name')
-
-            logger.info(f"✅ Keys addition task started successfully:")
-            logger.info(f"   Task Type: {task_type}")
-            logger.info(f"   Is Running: {is_running}")
-            logger.info(f"   Total Keys: {total}")
-            logger.info(f"   Group Name: {group_name}")
-
-            # 保存发送结果日志 - 所有密钥都成功
-            send_result = {key: "ok" for key in keys}
-            file_manager.save_keys_send_result(keys, send_result)
-
-            return "ok"
+                return "partial_failure"
 
         except requests.exceptions.Timeout:
             logger.error("❌ Request timeout when connecting to GPT load balancer")
