@@ -173,7 +173,7 @@ class GitHubClient:
             # 获取proxy配置
             proxies = Config.get_random_proxy()
 
-            logger.info(f"🔍 processing file: {metadata_url}")
+            logger.info(f"🔍 Processing file: {metadata_url}")
             if proxies:
                 metadata_response = requests.get(metadata_url, headers=headers, proxies=proxies)
             else:
