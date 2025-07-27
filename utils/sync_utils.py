@@ -267,8 +267,6 @@ class SyncUtils:
         self.saving_checkpoint = True
         try:
             # 加载checkpoint
-            checkpoint = file_manager.load_checkpoint()
-
             logger.info(f"📥 Starting batch sending, wait_send_balancer length: {len(checkpoint.wait_send_balancer)}, wait_send_gpt_load length: {len(checkpoint.wait_send_gpt_load)}")
             # 发送gemini balancer队列
             if checkpoint.wait_send_balancer and self.balancer_enabled:
@@ -299,7 +297,6 @@ class SyncUtils:
 
             # 保存checkpoint
             file_manager.save_checkpoint(checkpoint)
-            checkpoint = file_manager.load_checkpoint()
         except Exception as e:
             stacktrace = traceback.format_exc()
             logger.error(f"❌ Batch send worker error: {e}\n{stacktrace}")

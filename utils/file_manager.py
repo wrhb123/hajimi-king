@@ -243,6 +243,7 @@ class FileManager:
         try:
             with open(self.checkpoint_file, "w", encoding="utf-8") as f:
                 json.dump(checkpoint.to_dict(), f, ensure_ascii=False, indent=2)
+            checkpoint = self.load_checkpoint()
         except Exception as e:
             logger.error(f"Failed to save {self.checkpoint_file}: {e}")
 
@@ -299,7 +300,13 @@ class FileManager:
                     f.write(f"{key}\n")
 
     def save_keys_send_result(self, keys: List[str], send_result: dict) -> None:
-        """保存发送到外部应用的结果"""
+        """
+        保存发送到外部应用的结果
+        
+        Args:
+            keys: API keys列表
+            send_result: 字典，key是密钥，value是发送结果状态
+        """
         if not keys:
             return
 
@@ -309,17 +316,17 @@ class FileManager:
         if self._keys_send_detail_filename:
             with open(self._keys_send_detail_filename, "a", encoding="utf-8") as f:
                 f.write(f"TIME: {timestamp}\n")
-                f.write(f"SEND_STATUS: {'SUCCESS' if send_result.get('success') else 'FAILED'}\n")
                 for key in keys:
-                    f.write(f"{key}\n")
+                    result = send_result.get(key, "unknown")
+                    f.write(f"KEY: {key} | RESULT: {result}\n")
                 f.write("-" * 80 + "\n")
 
         # 保存简要信息到keys_send文件
         if self._keys_send_filename:
             with open(self._keys_send_filename, "a", encoding="utf-8") as f:
-                status = "SUCCESS" if send_result.get('success') else "FAILED"
                 for key in keys:
-                    f.write(f"{key} | {status}\n")
+                    result = send_result.get(key, "unknown")
+                    f.write(f"{key} | {result}\n")
 
     def append_scanned_sha(self, sha: str) -> None:
         """追加单个SHA到文件中"""
