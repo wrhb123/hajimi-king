@@ -1,6 +1,6 @@
 # 🎪 Hajimi King 🏆
 
-人人都是哈基米大王 👑，注意项目核心的核心是query.txt的表达式 ✨
+人人都是哈基米大王  👑
 
 ## 🚀 核心功能
 
@@ -87,48 +87,29 @@ Ctrl + C
 
 ## 🐳 Docker部署 🌊
 
-### 1. 使用预构建镜像（推荐）🏗️
+### 方式一：使用环境变量
 
-项目已配置GitHub Actions自动构建，可直接使用预构建镜像：
-
-```bash
-# 拉取最新稳定版本（main分支）
-docker pull ghcr.io/gakkinoone/hajimi-king:latest
-
-# 拉取开发版本（dev分支）
-docker pull ghcr.io/gakkinoone/hajimi-king:dev
-
-# 拉取特定版本
-docker pull ghcr.io/gakkinoone/hajimi-king:v1.0.0
+```yaml
+version: '3.8'
+services:
+  hajimi-king:
+    image: ghcr.io/gakkinoone/hajimi-king:latest
+    container_name: hajimi-king
+    restart: unless-stopped
+    environment:
+      # 必填：GitHub访问令牌
+      - GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
+      # 可选配置
+      - HAJIMI_CHECK_MODEL=gemini-2.5-flash
+      - QUERIES_FILE=queries.txt
+    volumes:
+      - ./data:/app/data
+    working_dir: /app
 ```
 
-### 2. 快速部署 🚀
+### 方式二：使用.env文件
 
-```bash
-# 创建部署目录
-mkdir hajimi-king-deploy && cd hajimi-king-deploy
-
-# 创建配置文件
-cat > .env << EOF
-# 必填：GitHub访问令牌
-GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
-
-# 可选配置
-DATA_PATH=/app/data
-HAJIMI_CHECK_MODEL=gemini-2.5-flash
-DATE_RANGE_DAYS=730
-EOF
-
-# 创建查询文件
-mkdir -p data
-cat > data/queries.txt << EOF
-# GitHub搜索查询配置文件
-AIzaSy in:file
-AIzaSy in:file filename:.env
-EOF
-
-# 创建docker-compose.yml
-cat > docker-compose.yml << EOF
+```yaml
 version: '3.8'
 services:
   hajimi-king:
@@ -140,71 +121,38 @@ services:
     volumes:
       - ./data:/app/data
     working_dir: /app
-EOF
+```
+
+创建 `.env` 文件（参考 `env.example`）：
+```bash
+# 复制示例配置文件
+cp env.example .env
+# 编辑配置文件，填入你的GitHub Token
+```
+
+### 启动服务
+
+```bash
+# 创建数据目录和查询文件
+mkdir -p data
+echo "AIzaSy in:file" > data/queries.txt
 
 # 启动服务
 docker-compose up -d
-```
 
-### 3. Docker服务管理 🎛️
-
-```bash
-# 查看服务状态
-docker-compose ps
-
-# 查看实时日志
+# 查看日志
 docker-compose logs -f
-
-# 停止服务
-docker-compose down
-
-# 重启服务
-docker-compose restart
-
-# 更新到最新版本
-docker-compose pull && docker-compose up -d
 ```
 
-> 💡 **镜像自动构建**：
-> - 推送到 `main` 分支 → 构建 `latest` 标签
-> - 推送到 `dev` 分支 → 构建 `dev` 标签
-> - 创建版本标签 → 构建对应版本镜像
-> - 支持 `linux/amd64` 和 `linux/arm64` 架构
+### 代理配置
 
-### 4. 传统部署方式 📜
+如果需要使用代理访问GitHub或Gemini API，推荐使用本地WARP代理：
 
-如果需要自行构建镜像，可以使用传统方式：
+> 🌐 **代理方案**：[warp-docker](https://github.com/cmj2002/warp-docker) - 本地WARP代理解决方案
 
+在 `.env` 文件中配置：
 ```bash
-# 克隆项目
-git clone https://github.com/GakkiNoOne/hajimi-king.git
-cd hajimi-king
-
-# 使用部署脚本
-chmod +x first_deploy.sh
-./first_deploy.sh
-```
-
-### 4. 文件位置 🗺️
-
-部署后的文件结构：
-```
-deploy_directory/
-├── .env                    # 环境配置
-├── docker-compose.yml      # Docker编排配置
-├── data/                   # 数据目录
-│   ├── keys/               # 密钥文件目录
-│   │   ├── keys_valid_*.txt      # 有效密钥
-│   │   ├── key_429_*.txt         # 限流密钥
-│   │   └── keys_send_*.txt       # 发送记录
-│   ├── logs/               # 日志文件目录
-│   │   ├── keys_valid_detail_*.log    # 详细日志
-│   │   ├── key_429_detail_*.log       # 限流详细日志
-│   │   └── keys_send_detail_*.log     # 发送详细日志
-│   ├── queries.txt         # 搜索查询配置
-│   ├── checkpoint.json     # 扫描进度
-│   └── scanned_shas.txt    # 已扫描文件记录
-└── hajimi-king/            # 源码目录
+PROXY=http://localhost:1080,proxy2,proxy3   (host模式)
 ```
 
 ---
@@ -221,12 +169,15 @@ deploy_directory/
 
 ### 🟡 重要配置（建议了解）🤓
 
-| 变量名 | 默认值                | 说明                        |
-|--------|--------------------|---------------------------|
-| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                  |
-| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅    |
-| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯 |
-| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖              |
+| 变量名 | 默认值                | 说明                                       |
+|--------|--------------------|------------------------------------------|
+| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                              |
+| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅                |
+| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯             |
+| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖                          |
+| `GEMINI_BALANCER_SYNC_ENABLED` | `false` | 是否启用Gemini Balancer同步 🔗                 |
+| `GEMINI_BALANCER_URL` | 空 | Gemini Balancer服务地址（http://your-gemini-balancer.com） 🌐 |
+| `GEMINI_BALANCER_AUTH` | 空 | Gemini Balancer认证信息(密码） 🔐               |
 
 ### 🟢 可选配置（不懂就别动）😅
 
@@ -295,7 +246,6 @@ AizaSy in:file filename:.env
 - ✅ 定期轮换GitHub Token 🔄
 - ✅ 不要将真实的API密钥提交到版本控制 🙈
 - ✅ 定期检查和清理发现的密钥文件 🧹
-- ✅ 运行在安全的网络环境中 🏠
 
 💖 **享受使用 Hajimi King 的快乐时光！** 🎉✨🎊
 
