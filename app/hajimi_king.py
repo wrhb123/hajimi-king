@@ -223,7 +223,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         response = model.generate_content("hi")
         return "ok"
     except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
-        return "not_authorized"
+        return "not_authorized_key"
     except google_exceptions.TooManyRequests as e:
         return "rate_limited"
     except Exception as e:
@@ -232,7 +232,6 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         elif "403" in str(e) or "SERVICE_DISABLED" in str(e) or "API has not been used" in str(e):
             return "disabled"
         else:
-            traceback.print_exc()
             return f"error:{e.__class__.__name__}"
 
 
