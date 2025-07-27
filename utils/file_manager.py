@@ -479,3 +479,4 @@ class FileManager:
         return True
 
 file_manager = FileManager(Config.DATA_PATH)
+checkpoint = file_manager.load_checkpoint()

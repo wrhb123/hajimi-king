@@ -15,7 +15,7 @@ from common.Logger import logger
 sys.path.append('../')
 from common.config import Config
 from utils.github_client import GitHubClient
-from utils.file_manager import file_manager, Checkpoint
+from utils.file_manager import file_manager, Checkpoint, checkpoint
 from utils.sync_utils import sync_utils
 
 # 创建GitHub工具实例和文件管理器
@@ -271,7 +271,6 @@ def main():
         logger.info("🔗 SyncUtils ready for async key syncing")
         
     # 显示队列状态
-    checkpoint = file_manager.load_checkpoint()
     balancer_queue_count = len(checkpoint.wait_send_balancer)
     gpt_load_queue_count = len(checkpoint.wait_send_gpt_load)
     logger.info(f"📊 Queue status - Balancer: {balancer_queue_count}, GPT Load: {gpt_load_queue_count}")

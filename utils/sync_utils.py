@@ -9,7 +9,7 @@ import requests
 
 from common.Logger import logger
 from common.config import Config
-from utils.file_manager import file_manager
+from utils.file_manager import file_manager, checkpoint
 
 
 class SyncUtils:
@@ -36,7 +36,6 @@ class SyncUtils:
         self.batch_interval = 60
         self.batch_timer = None
         self.shutdown_flag = False
-        self.file_manager = file_manager
 
         if not self.balancer_enabled:
             logger.warning("🚫 Gemini Balancer sync disabled - URL or AUTH not configured")
@@ -68,7 +67,6 @@ class SyncUtils:
 
         self.saving_checkpoint = True  # Acquire the lock
         try:
-            checkpoint = self.file_manager.load_checkpoint()
 
             # Gemini Balancer
             if self.balancer_enabled:
@@ -90,7 +88,7 @@ class SyncUtils:
             else:
                 logger.info(f"🚫 GPT Load Balancer disabled, skipping {len(keys)} key(s) for GPT load balancer queue")
 
-            self.file_manager.save_checkpoint(checkpoint)
+            file_manager.save_checkpoint(checkpoint)
         finally:
             self.saving_checkpoint = False  # Release the lock
 
@@ -139,6 +137,7 @@ class SyncUtils:
 
             if len(new_add_keys_set) == 0:
                 logger.info(f"ℹ️ All {len(keys)} key(s) already exist in balancer")
+                # 不需要记录发送结果，因为没有实际发送新密钥
                 return "ok"
 
             # 4. 更新配置中的API_KEYS
@@ -172,47 +171,52 @@ class SyncUtils:
                 logger.error(f"❌ Failed to add {len(failed_to_add)} key(s): {[key[:10] + '...' for key in failed_to_add]}")
                 # 保存发送结果日志 - 部分成功的情况
                 send_result = {}
-                for key in keys:
+                keys_to_log = []
+                for key in new_add_keys_set:  # 只记录尝试新增的密钥
                     if key in failed_to_add:
                         send_result[key] = "update_failed"
+                        keys_to_log.append(key)
                     else:
                         send_result[key] = "ok"
-                self.file_manager.save_keys_send_result(keys, send_result)
+                        keys_to_log.append(key)
+                if keys_to_log:  # 只有当有需要记录的密钥时才记录
+                    file_manager.save_keys_send_result(keys_to_log, send_result)
                 return "update_failed"
 
 
             logger.info(f"✅ All {len(new_add_keys_set)} new key(s) successfully added to balancer.")
             
-            # 保存发送结果日志
-            send_result = {key: "ok" for key in keys}
-            self.file_manager.save_keys_send_result(keys, send_result)
+            # 保存发送结果日志 - 只记录实际新增的密钥
+            send_result = {key: "ok" for key in new_add_keys_set}
+            if send_result:  # 只有当有新增密钥时才记录
+                file_manager.save_keys_send_result(list(new_add_keys_set), send_result)
             
             return "ok"
 
         except requests.exceptions.Timeout:
             logger.error("❌ Request timeout when connecting to balancer")
-            # 保存发送结果日志
+            # 保存发送结果日志 - 所有密钥都失败
             send_result = {key: "timeout" for key in keys}
-            self.file_manager.save_keys_send_result(keys, send_result)
+            file_manager.save_keys_send_result(keys, send_result)
             return "timeout"
         except requests.exceptions.ConnectionError:
             logger.error("❌ Connection failed to balancer")
-            # 保存发送结果日志
+            # 保存发送结果日志 - 所有密钥都失败
             send_result = {key: "connection_error" for key in keys}
-            self.file_manager.save_keys_send_result(keys, send_result)
+            file_manager.save_keys_send_result(keys, send_result)
             return "connection_error"
         except json.JSONDecodeError as e:
             logger.error(f"❌ Invalid JSON response from balancer: {str(e)}")
-            # 保存发送结果日志
+            # 保存发送结果日志 - 所有密钥都失败
             send_result = {key: "json_decode_error" for key in keys}
-            self.file_manager.save_keys_send_result(keys, send_result)
+            file_manager.save_keys_send_result(keys, send_result)
             return "json_decode_error"
         except Exception as e:
             logger.error(f"❌ Failed to send keys to balancer: {str(e)}")
             traceback.print_exc()
-            # 保存发送结果日志
+            # 保存发送结果日志 - 所有密钥都失败
             send_result = {key: "exception" for key in keys}
-            self.file_manager.save_keys_send_result(keys, send_result)
+            file_manager.save_keys_send_result(keys, send_result)
             return "exception"
 
     def _send_gpt_load_worker(self, keys: List[str]) -> str:
@@ -263,7 +267,7 @@ class SyncUtils:
         self.saving_checkpoint = True
         try:
             # 加载checkpoint
-            checkpoint = self.file_manager.load_checkpoint()
+            checkpoint = file_manager.load_checkpoint()
 
             logger.info(f"📥 Starting batch sending, wait_send_balancer length: {len(checkpoint.wait_send_balancer)}, wait_send_gpt_load length: {len(checkpoint.wait_send_gpt_load)}")
             # 发送gemini balancer队列
@@ -279,7 +283,7 @@ class SyncUtils:
                 else:
                     logger.error(f"❌ Gemini balancer queue processing failed with code: {result_code}")
 
-            # 发送gpt_load队列  
+            # 发送gpt_load队列
             if checkpoint.wait_send_gpt_load and self.gpt_load_enabled:
                 gpt_load_keys = list(checkpoint.wait_send_gpt_load)
                 logger.info(f"🔄 Processing {len(gpt_load_keys)} key(s) from GPT load balancer queue")
@@ -294,7 +298,7 @@ class SyncUtils:
                     logger.error(f"❌ GPT load balancer queue processing failed with code: {result_code}")
 
             # 保存checkpoint
-            self.file_manager.save_checkpoint(checkpoint)
+            file_manager.save_checkpoint(checkpoint)
         except Exception as e:
             stacktrace = traceback.format_exc()
             logger.error(f"❌ Batch send worker error: {e}\n{stacktrace}")
