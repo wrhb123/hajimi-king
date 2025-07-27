@@ -211,7 +211,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         
         # 如果有代理配置，添加到client_options中
         if proxy_config:
-            os.environ['grpc_proxy'] = 'http://127.0.0.1:7890'
+            os.environ['grpc_proxy'] = proxy_config.get('http')
 
         genai.configure(
             api_key=api_key,
