@@ -8,7 +8,7 @@
 2. **代理支持** 🌐 - 支持多代理轮换，提高访问稳定性和成功率
 3. **增量扫描** 📊 - 支持断点续传，避免重复扫描已处理的文件
 4. **智能过滤** 🚫 - 自动过滤文档、示例、测试文件，专注有效代码
-5. **外部同步** 🔄 - 支持向Gemini-Balancer和GPT-Load 同步发现的密钥
+5. **外部同步** 🔄 - 支持向[Gemini-Balancer](https://github.com/snailyp/gemini-balance)和[GPT-Load](https://github.com/tbphp/gpt-load)同步发现的密钥
 
 ## 📋 目录 🗂️
 
