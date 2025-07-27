@@ -152,7 +152,9 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-### 代理配置（强烈建议使用！GITHUB、GEMINI 访问长时间高频都会BAN IP）
+### 代理配置
+
+强烈建议使用！GITHUB、GEMINI 访问长时间高频都会BAN IP
 
 如果需要使用代理访问GitHub或Gemini API，推荐使用本地WARP代理：
 
