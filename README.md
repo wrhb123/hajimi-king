@@ -152,14 +152,8 @@ docker-compose logs -f
 
 在 `.env` 文件中配置：
 ```bash
-# 单个代理
+# 多个代理使用逗号分隔
 PROXY=http://localhost:1080
-
-# 多个代理（逗号分隔，支持轮换）
-PROXY=http://proxy1:1080,http://proxy2:1080,socks5://proxy3:1080
-
-# 支持账密认证的代理
-PROXY=http://user:pass@proxy.com:1080,socks5://user:pass@proxy.com:1080
 ```
 
 ---
