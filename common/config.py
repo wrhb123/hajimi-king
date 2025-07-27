@@ -1,5 +1,6 @@
 import os
-from typing import List, Dict, Optional
+import random
+from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
@@ -14,13 +15,37 @@ class Config:
 
     # 获取GitHub tokens列表
     GITHUB_TOKENS = [token.strip() for token in GITHUB_TOKENS_STR.split(',') if token.strip()]
-    DATA_PATH = os.getenv('DATA_PATH', 'data')
-    PROXY = os.getenv("PROXY", "")
+    DATA_PATH = os.getenv('DATA_PATH', '/app/data')
+    PROXY_LIST_STR = os.getenv("PROXY", "")
+    
+    # 解析代理列表，支持格式：http://user:pass@host:port,http://host:port,socks5://user:pass@host:port
+    PROXY_LIST = []
+    if PROXY_LIST_STR:
+        for proxy_str in PROXY_LIST_STR.split(','):
+            proxy_str = proxy_str.strip()
+            if proxy_str:
+                PROXY_LIST.append(proxy_str)
+    
+    # Gemini Balancer配置
+    GEMINI_BALANCER_SYNC_ENABLED = os.getenv("GEMINI_BALANCER_SYNC_ENABLED", "false")
+    GEMINI_BALANCER_URL = os.getenv("GEMINI_BALANCER_URL", "")
+    GEMINI_BALANCER_AUTH = os.getenv("GEMINI_BALANCER_AUTH", "")
+
+    # GPT Load Balancer Configuration
+    GPT_LOAD_SYNC_ENABLED = os.getenv("GPT_LOAD_SYNC_ENABLED", "false")
+    GPT_LOAD_URL = os.getenv('GPT_LOAD_URL', '')
+    GPT_LOAD_AUTH = os.getenv('GPT_LOAD_AUTH', '')
+    GPT_LOAD_GROUP_NAME = os.getenv('GPT_LOAD_GROUP_NAME', '')
+
     # 文件前缀配置
-    VALID_KEY_DETAIL_PREFIX = os.getenv("VALID_KEY_DETAIL_PREFIX", "keys_valid_detail_")
-    VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys_valid_")
-    RATE_LIMITED_KEY_PREFIX = os.getenv("RATE_LIMITED_KEY_PREFIX", "gemini_key_429_")
-    RATE_LIMITED_KEY_DETAIL_PREFIX = os.getenv("RATE_LIMITED_KEY_DETAIL_PREFIX", "gemini_key_429_detail_")
+    VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys/keys_valid_")
+    RATE_LIMITED_KEY_PREFIX = os.getenv("RATE_LIMITED_KEY_PREFIX", "keys/key_429_")
+    KEYS_SEND_PREFIX = os.getenv("KEYS_SEND_PREFIX", "keys/keys_send_")
+
+    VALID_KEY_DETAIL_PREFIX = os.getenv("VALID_KEY_DETAIL_PREFIX", "logs/keys_valid_detail_")
+    RATE_LIMITED_KEY_DETAIL_PREFIX = os.getenv("RATE_LIMITED_KEY_DETAIL_PREFIX", "logs/key_429_detail_")
+    KEYS_SEND_DETAIL_PREFIX = os.getenv("KEYS_SEND_DETAIL_PREFIX", "logs/keys_send_detail_")
+    
     # 日期范围过滤器配置 (单位：天)
     DATE_RANGE_DAYS = int(os.getenv("DATE_RANGE_DAYS", "730"))  # 默认730天 (约2年)
 
@@ -34,22 +59,45 @@ class Config:
     HAJIMI_CHECK_MODEL = os.getenv("HAJIMI_CHECK_MODEL", "gemini-2.5-flash")
 
     # 文件路径黑名单配置
-    FILE_PATH_BLACKLIST_STR = os.getenv("FILE_PATH_BLACKLIST", "readme,docs,doc/,.md,example,sample,tutorial")
+    FILE_PATH_BLACKLIST_STR = os.getenv("FILE_PATH_BLACKLIST", "readme,docs,doc/,.md,sample,tutorial")
     FILE_PATH_BLACKLIST = [token.strip().lower() for token in FILE_PATH_BLACKLIST_STR.split(',') if token.strip()]
 
     @classmethod
-    def get_requests_proxies(cls) -> Optional[Dict[str, str]]:
+    def parse_bool(cls, value: str) -> bool:
         """
-        获取requests包格式的proxy配置
+        解析布尔值配置，支持多种格式
+        
+        Args:
+            value: 配置值字符串
+            
+        Returns:
+            bool: 解析后的布尔值
+        """
+        if isinstance(value, bool):
+            return value
+        
+        if isinstance(value, str):
+            value = value.strip().lower()
+            return value in ('true', '1', 'yes', 'on', 'enabled')
+        
+        if isinstance(value, int):
+            return bool(value)
+        
+        return False
+
+    @classmethod
+    def get_random_proxy(cls) -> Optional[Dict[str, str]]:
+        """
+        随机获取一个代理配置
         
         Returns:
             Optional[Dict[str, str]]: requests格式的proxies字典，如果未配置则返回None
         """
-        if not cls.PROXY:
+        if not cls.PROXY_LIST:
             return None
         
-        # 支持多种格式的proxy配置
-        proxy_url = cls.PROXY.strip()
+        # 随机选择一个代理
+        proxy_url = random.choice(cls.PROXY_LIST).strip()
         
         # 返回requests格式的proxies字典
         return {
@@ -76,41 +124,29 @@ class Config:
         else:
             logger.info(f"✅ GitHub tokens: {len(cls.GITHUB_TOKENS)} configured")
         
-
-        
-        # 检查数据路径
-        if not cls.DATA_PATH:
-            errors.append("Data path not configured. Please set DATA_PATH.")
-            logger.error("❌ Data path: Missing")
-        else:
-            logger.info(f"✅ Data path: {cls.DATA_PATH}")
-        
-        # 检查文件前缀配置
-        required_prefixes = [
-            (cls.VALID_KEY_DETAIL_PREFIX, "VALID_KEY_DETAIL_PREFIX"),
-            (cls.VALID_KEY_PREFIX, "VALID_KEY_LOG_PREFIX"),
-            (cls.RATE_LIMITED_KEY_PREFIX, "RATE_LIMITED_KEY_PREFIX"),
-            (cls.RATE_LIMITED_KEY_DETAIL_PREFIX, "RATE_LIMITED_KEY_DETAIL_PREFIX")
-        ]
-        
-        for prefix, name in required_prefixes:
-            if not prefix:
-                errors.append(f"{name} not configured.")
-                logger.error(f"❌ {name}: Missing")
+        # 检查Gemini Balancer配置
+        if cls.GEMINI_BALANCER_SYNC_ENABLED:
+            logger.info(f"✅ Gemini Balancer enabled, URL: {cls.GEMINI_BALANCER_URL}")
+            if not cls.GEMINI_BALANCER_AUTH or not cls.GEMINI_BALANCER_URL:
+                logger.warning("⚠️ Gemini Balancer Auth or URL Missing (Balancer功能将被禁用)")
             else:
-                logger.info(f"✅ {name}: {prefix}")
-        
-        # 检查Hajimi检验模型配置
-        if not cls.HAJIMI_CHECK_MODEL:
-            errors.append("HAJIMI_CHECK_MODEL not configured.")
-            logger.error("❌ Hajimi check model: Missing")
+                logger.info(f"✅ Gemini Balancer Auth: ****")
         else:
-            logger.info(f"✅ Hajimi check model: {cls.HAJIMI_CHECK_MODEL}")
-        
+            logger.info("ℹ️ Gemini Balancer URL: Not configured (Balancer功能将被禁用)")
+
+        # 检查GPT Load Balancer配置
+        if cls.parse_bool(cls.GPT_LOAD_SYNC_ENABLED):
+            logger.info(f"✅ GPT Load Balancer enabled, URL: {cls.GPT_LOAD_URL}")
+            if not cls.GPT_LOAD_AUTH or not cls.GPT_LOAD_URL or not cls.GPT_LOAD_GROUP_NAME:
+                logger.warning("⚠️ GPT Load Balancer Auth, URL or Group Name Missing (Load Balancer功能将被禁用)")
+            else:
+                logger.info(f"✅ GPT Load Balancer Auth: ****")
+                logger.info(f"✅ GPT Load Balancer Group Name: {cls.GPT_LOAD_GROUP_NAME}")
+        else:
+            logger.info("ℹ️ GPT Load Balancer: Not configured (Load Balancer功能将被禁用)")
+
         if errors:
             logger.error("❌ Configuration check failed:")
-            for error in errors:
-                logger.error(f"   - {error}")
             logger.info("Please check your .env file and configuration.")
             return False
         
@@ -118,16 +154,29 @@ class Config:
         return True
 
 
-logger.info(f"*" * 30 + " CONFIG START" + "*" * 30)
-logger.info(f"GITHUB_TOKENS: Found {len(Config.GITHUB_TOKENS)} tokens")
-logger.info(f"Valid key detail prefix: {Config.VALID_KEY_DETAIL_PREFIX}")
-logger.info(f"Valid key log prefix: {Config.VALID_KEY_PREFIX}")
-logger.info(f"Rate limited key prefix: {Config.RATE_LIMITED_KEY_PREFIX}")
-logger.info(f"Date range filter: {Config.DATE_RANGE_DAYS} days")
-logger.info(f"Queries file: {Config.QUERIES_FILE}")
-logger.info(f"Scanned SHAs file: {Config.SCANNED_SHAS_FILE}")
-logger.info(f"File path blacklist: {len(Config.FILE_PATH_BLACKLIST)} items")
-logger.info(f"*" * 30 + " CONFIG END" + "*" * 30)
+logger.info(f"*" * 30 + " CONFIG START " + "*" * 30)
+logger.info(f"GITHUB_TOKENS: {len(Config.GITHUB_TOKENS)} tokens")
+logger.info(f"DATA_PATH: {Config.DATA_PATH}")
+logger.info(f"PROXY_LIST: {len(Config.PROXY_LIST)} proxies configured")
+logger.info(f"GEMINI_BALANCER_URL: {Config.GEMINI_BALANCER_URL or 'Not configured'}")
+logger.info(f"GEMINI_BALANCER_AUTH: {'Configured' if Config.GEMINI_BALANCER_AUTH else 'Not configured'}")
+logger.info(f"GEMINI_BALANCER_SYNC_ENABLED: {Config.parse_bool(Config.GEMINI_BALANCER_SYNC_ENABLED)}")
+logger.info(f"GPT_LOAD_SYNC_ENABLED: {Config.parse_bool(Config.GPT_LOAD_SYNC_ENABLED)}")
+logger.info(f"GPT_LOAD_URL: {Config.GPT_LOAD_URL or 'Not configured'}")
+logger.info(f"GPT_LOAD_AUTH: {'Configured' if Config.GPT_LOAD_AUTH else 'Not configured'}")
+logger.info(f"GPT_LOAD_GROUP_NAME: {Config.GPT_LOAD_GROUP_NAME or 'Not configured'}")
+logger.info(f"VALID_KEY_PREFIX: {Config.VALID_KEY_PREFIX}")
+logger.info(f"RATE_LIMITED_KEY_PREFIX: {Config.RATE_LIMITED_KEY_PREFIX}")
+logger.info(f"KEYS_SEND_PREFIX: {Config.KEYS_SEND_PREFIX}")
+logger.info(f"VALID_KEY_DETAIL_PREFIX: {Config.VALID_KEY_DETAIL_PREFIX}")
+logger.info(f"RATE_LIMITED_KEY_DETAIL_PREFIX: {Config.RATE_LIMITED_KEY_DETAIL_PREFIX}")
+logger.info(f"KEYS_SEND_DETAIL_PREFIX: {Config.KEYS_SEND_DETAIL_PREFIX}")
+logger.info(f"DATE_RANGE_DAYS: {Config.DATE_RANGE_DAYS} days")
+logger.info(f"QUERIES_FILE: {Config.QUERIES_FILE}")
+logger.info(f"SCANNED_SHAS_FILE: {Config.SCANNED_SHAS_FILE}")
+logger.info(f"HAJIMI_CHECK_MODEL: {Config.HAJIMI_CHECK_MODEL}")
+logger.info(f"FILE_PATH_BLACKLIST: {len(Config.FILE_PATH_BLACKLIST)} items")
+logger.info(f"*" * 30 + " CONFIG END " + "*" * 30)
 
 # 创建全局配置实例
 config = Config()

