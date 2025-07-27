@@ -87,60 +87,103 @@ Ctrl + C
 
 ## 🐳 Docker部署 🌊
 
-### 1. 准备部署脚本 📜
-
-```bash
-# 将deploy.sh复制到父目录
-cd ${deploy_directory}
-
-git clone <repository-url>
-
-cp hajimi-king/first_deploy.sh ./
-
-# 或者直接下载项目到某个目录，确保目录结构如下：
-# deploy_directory/
-# ├── first_deploy.sh
-# └── hajimi-king/
-#     ├── app
-#     └── ...
-```
-
-### 2. 一键部署 🚀
-
-```bash
-# 运行部署脚本
-chmod +x first_deploy.sh
-
-./first_deploy.sh
-```
-
-部署脚本会自动完成以下步骤：
-1. ✅ 检查Docker环境 🔍
-2. ✅ 创建data目录 📁
-3. ✅ 复制配置文件（.env, queries.txt）📄
-4. ✅ 交互式配置GitHub Token 🎛️
-5. ✅ 构建Docker镜像 🏗️
-6. ✅ 启动服务 🎉
-
-### 3. 使用预构建镜像 🏗️
+### 1. 使用预构建镜像（推荐）🏗️
 
 项目已配置GitHub Actions自动构建，可直接使用预构建镜像：
 
 ```bash
-# 拉取最新镜像（main分支）
-docker pull ghcr.io/your-username/hajimi-king:latest
+# 拉取最新稳定版本（main分支）
+docker pull ghcr.io/gakkinoone/hajimi-king:latest
 
 # 拉取开发版本（dev分支）
-docker pull ghcr.io/your-username/hajimi-king:dev
+docker pull ghcr.io/gakkinoone/hajimi-king:dev
 
 # 拉取特定版本
-docker pull ghcr.io/your-username/hajimi-king:v1.0.0
+docker pull ghcr.io/gakkinoone/hajimi-king:v1.0.0
 ```
 
-> 💡 **自动构建触发条件**：
-> - 推送到 `main` 或 `dev` 分支时自动构建
-> - 创建版本标签（如 `v1.0.0`）时自动构建
+### 2. 快速部署 🚀
+
+```bash
+# 创建部署目录
+mkdir hajimi-king-deploy && cd hajimi-king-deploy
+
+# 创建配置文件
+cat > .env << EOF
+# 必填：GitHub访问令牌
+GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
+
+# 可选配置
+DATA_PATH=/app/data
+HAJIMI_CHECK_MODEL=gemini-2.5-flash
+DATE_RANGE_DAYS=730
+EOF
+
+# 创建查询文件
+mkdir -p data
+cat > data/queries.txt << EOF
+# GitHub搜索查询配置文件
+AIzaSy in:file
+AIzaSy in:file filename:.env
+EOF
+
+# 创建docker-compose.yml
+cat > docker-compose.yml << EOF
+version: '3.8'
+services:
+  hajimi-king:
+    image: ghcr.io/gakkinoone/hajimi-king:latest
+    container_name: hajimi-king
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    working_dir: /app
+EOF
+
+# 启动服务
+docker-compose up -d
+```
+
+### 3. Docker服务管理 🎛️
+
+```bash
+# 查看服务状态
+docker-compose ps
+
+# 查看实时日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+
+# 重启服务
+docker-compose restart
+
+# 更新到最新版本
+docker-compose pull && docker-compose up -d
+```
+
+> 💡 **镜像自动构建**：
+> - 推送到 `main` 分支 → 构建 `latest` 标签
+> - 推送到 `dev` 分支 → 构建 `dev` 标签
+> - 创建版本标签 → 构建对应版本镜像
 > - 支持 `linux/amd64` 和 `linux/arm64` 架构
+
+### 4. 传统部署方式 📜
+
+如果需要自行构建镜像，可以使用传统方式：
+
+```bash
+# 克隆项目
+git clone https://github.com/GakkiNoOne/hajimi-king.git
+cd hajimi-king
+
+# 使用部署脚本
+chmod +x first_deploy.sh
+./first_deploy.sh
+```
 
 ### 4. 文件位置 🗺️
 
