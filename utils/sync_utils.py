@@ -299,6 +299,7 @@ class SyncUtils:
 
             # 保存checkpoint
             file_manager.save_checkpoint(checkpoint)
+            checkpoint = file_manager.load_checkpoint()
         except Exception as e:
             stacktrace = traceback.format_exc()
             logger.error(f"❌ Batch send worker error: {e}\n{stacktrace}")
