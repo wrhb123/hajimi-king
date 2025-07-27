@@ -1,3 +1,4 @@
+import os
 import random
 import re
 import sys
@@ -210,12 +211,10 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         
         # 如果有代理配置，添加到client_options中
         if proxy_config:
-            # 使用http代理（Gemini API通常使用http代理）
-            client_options["proxies"] = proxy_config.get('http')
+            os.environ['grpc_proxy'] = 'http://127.0.0.1:7890'
 
         genai.configure(
             api_key=api_key,
-            transport="rest",
             client_options=client_options,
         )
 
@@ -232,7 +231,7 @@ def validate_gemini_key(api_key: str) -> Union[bool, str]:
         elif "403" in str(e) or "SERVICE_DISABLED" in str(e) or "API has not been used" in str(e):
             return "disabled"
         else:
-            return "error"
+            return f"error:{e.__class__.__name__}"
 
 
 def print_skip_stats():
