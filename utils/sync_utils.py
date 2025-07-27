@@ -139,12 +139,12 @@ class SyncUtils:
                     existing_keys_set.add(key)
                     new_keys_added.append(key)
 
-            if not new_keys_added:
+            if len(new_keys_added) == 0:
                 logger.info(f"ℹ️ All {len(keys)} key(s) already exist in balancer")
                 return "ok"
 
             # 4. 更新配置中的API_KEYS
-            config_data['API_KEYS'] = current_api_keys
+            config_data['API_KEYS'] = existing_keys_set
 
             logger.info(f"📝 Updating gemini balancer config with {len(new_keys_added)} new key(s)...")
 
@@ -253,8 +253,6 @@ class SyncUtils:
                     logger.info(f"✅ Gemini balancer queue processed successfully, cleared {len(balancer_keys)} key(s)")
                 else:
                     logger.error(f"❌ Gemini balancer queue processing failed with code: {result_code}")
-            elif checkpoint.wait_send_balancer and not self.balancer_enabled:
-                logger.info(f"🚫 Gemini Balancer disabled, skipping {len(checkpoint.wait_send_balancer)} key(s) in queue")
 
             # 发送gpt_load队列  
             if checkpoint.wait_send_gpt_load and self.gpt_load_enabled:
@@ -269,8 +267,6 @@ class SyncUtils:
                     logger.info(f"✅ GPT load balancer queue processed successfully, cleared {len(gpt_load_keys)} key(s)")
                 else:
                     logger.error(f"❌ GPT load balancer queue processing failed with code: {result_code}")
-            elif checkpoint.wait_send_gpt_load and not self.gpt_load_enabled:
-                logger.info(f"🚫 GPT Load Balancer disabled, skipping {len(checkpoint.wait_send_gpt_load)} key(s) in queue")
 
             # 保存checkpoint
             self.file_manager.save_checkpoint(checkpoint)
