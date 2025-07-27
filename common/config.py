@@ -35,6 +35,7 @@ class Config:
     GPT_LOAD_SYNC_ENABLED = os.getenv("GPT_LOAD_SYNC_ENABLED", "false")
     GPT_LOAD_URL = os.getenv('GPT_LOAD_URL', '')
     GPT_LOAD_AUTH = os.getenv('GPT_LOAD_AUTH', '')
+    GPT_LOAD_GROUP_NAME = os.getenv('GPT_LOAD_GROUP_NAME', '')
 
     # 文件前缀配置
     VALID_KEY_PREFIX = os.getenv("VALID_KEY_PREFIX", "keys/keys_valid_")
@@ -136,10 +137,11 @@ class Config:
         # 检查GPT Load Balancer配置
         if cls.parse_bool(cls.GPT_LOAD_SYNC_ENABLED):
             logger.info(f"✅ GPT Load Balancer enabled, URL: {cls.GPT_LOAD_URL}")
-            if not cls.GPT_LOAD_AUTH or not cls.GPT_LOAD_URL:
-                logger.warning("⚠️ GPT Load Balancer Auth or URL Missing (Load Balancer功能将被禁用)")
+            if not cls.GPT_LOAD_AUTH or not cls.GPT_LOAD_URL or not cls.GPT_LOAD_GROUP_NAME:
+                logger.warning("⚠️ GPT Load Balancer Auth, URL or Group Name Missing (Load Balancer功能将被禁用)")
             else:
                 logger.info(f"✅ GPT Load Balancer Auth: ****")
+                logger.info(f"✅ GPT Load Balancer Group Name: {cls.GPT_LOAD_GROUP_NAME}")
         else:
             logger.info("ℹ️ GPT Load Balancer: Not configured (Load Balancer功能将被禁用)")
 
@@ -162,6 +164,7 @@ logger.info(f"GEMINI_BALANCER_SYNC_ENABLED: {Config.parse_bool(Config.GEMINI_BAL
 logger.info(f"GPT_LOAD_SYNC_ENABLED: {Config.parse_bool(Config.GPT_LOAD_SYNC_ENABLED)}")
 logger.info(f"GPT_LOAD_URL: {Config.GPT_LOAD_URL or 'Not configured'}")
 logger.info(f"GPT_LOAD_AUTH: {'Configured' if Config.GPT_LOAD_AUTH else 'Not configured'}")
+logger.info(f"GPT_LOAD_GROUP_NAME: {Config.GPT_LOAD_GROUP_NAME or 'Not configured'}")
 logger.info(f"VALID_KEY_PREFIX: {Config.VALID_KEY_PREFIX}")
 logger.info(f"RATE_LIMITED_KEY_PREFIX: {Config.RATE_LIMITED_KEY_PREFIX}")
 logger.info(f"KEYS_SEND_PREFIX: {Config.KEYS_SEND_PREFIX}")
