@@ -2,6 +2,14 @@
 
 人人都是哈基米大王 👑，注意项目核心的核心是query.txt的表达式 ✨
 
+## 🚀 核心功能
+
+1. **GitHub搜索Gemini Key** 🔍 - 基于自定义查询表达式搜索GitHub代码中的API密钥
+2. **代理支持** 🌐 - 支持多代理轮换，提高访问稳定性和成功率
+3. **增量扫描** 📊 - 支持断点续传，避免重复扫描已处理的文件
+4. **智能过滤** 🚫 - 自动过滤文档、示例、测试文件，专注有效代码
+5. **外部同步** 🔄 - 支持向Gemini-Balancer和GPT-Load同步发现的密钥
+
 ## 📋 目录 🗂️
 
 - [本地部署](#-本地部署) 🏠
@@ -114,24 +122,25 @@ chmod +x first_deploy.sh
 5. ✅ 构建Docker镜像 🏗️
 6. ✅ 启动服务 🎉
 
-### 3. Docker服务管理 🎛️
+### 3. 使用预构建镜像 🏗️
+
+项目已配置GitHub Actions自动构建，可直接使用预构建镜像：
 
 ```bash
-# 查看服务状态
-docker-compose ps
+# 拉取最新镜像（main分支）
+docker pull ghcr.io/your-username/hajimi-king:latest
 
-# 查看实时日志
-docker-compose logs -f
+# 拉取开发版本（dev分支）
+docker pull ghcr.io/your-username/hajimi-king:dev
 
-# 停止服务
-docker-compose down
-
-# 重启服务
-docker-compose up -d
-
-# 进入容器调试
-docker-compose exec hajimi-king /bin/bash
+# 拉取特定版本
+docker pull ghcr.io/your-username/hajimi-king:v1.0.0
 ```
+
+> 💡 **自动构建触发条件**：
+> - 推送到 `main` 或 `dev` 分支时自动构建
+> - 创建版本标签（如 `v1.0.0`）时自动构建
+> - 支持 `linux/amd64` 和 `linux/arm64` 架构
 
 ### 4. 文件位置 🗺️
 
@@ -141,9 +150,16 @@ deploy_directory/
 ├── .env                    # 环境配置
 ├── docker-compose.yml      # Docker编排配置
 ├── data/                   # 数据目录
+│   ├── keys/               # 密钥文件目录
+│   │   ├── keys_valid_*.txt      # 有效密钥
+│   │   ├── key_429_*.txt         # 限流密钥
+│   │   └── keys_send_*.txt       # 发送记录
+│   ├── logs/               # 日志文件目录
+│   │   ├── keys_valid_detail_*.log    # 详细日志
+│   │   ├── key_429_detail_*.log       # 限流详细日志
+│   │   └── keys_send_detail_*.log     # 发送详细日志
 │   ├── queries.txt         # 搜索查询配置
-│   ├── keys_valid_*.txt    # 发现的有效密钥
-│   ├── keys_valid_detail_*.log  # 详细日志
+│   ├── checkpoint.json     # 扫描进度
 │   └── scanned_shas.txt    # 已扫描文件记录
 └── hajimi-king/            # 源码目录
 ```
@@ -164,22 +180,24 @@ deploy_directory/
 
 | 变量名 | 默认值                | 说明                        |
 |--------|--------------------|---------------------------|
-| `DATA_PATH` | `./data`           | 数据存储目录路径 📂                  |
+| `DATA_PATH` | `/app/data`        | 数据存储目录路径 📂                  |
 | `DATE_RANGE_DAYS` | `730`              | 仓库年龄过滤（天数），只扫描指定天数内的仓库 📅    |
 | `QUERIES_FILE` | `queries.txt`      | 搜索查询配置文件路径（表达式严重影响搜索的高效性) 🎯 |
 | `HAJIMI_CHECK_MODEL` | `gemini-2.5-flash` | 用于验证key有效的模型 🤖              |
 
 ### 🟢 可选配置（不懂就别动）😅
 
-| 变量名 | 默认值                                                                | 说明 |
-|--------|--------------------------------------------------------------------|------|
-| `PROXY` | 空                                                                  | 代理服务器地址，格式：`http://proxy:port` 🌐 |
-| `VALID_KEY_DETAIL_PREFIX` | `logs/keys_valid_detail_`                                          | 详细日志文件名前缀 📝 |
-| `VALID_KEY_PREFIX` | `keys/keys_valid_`                                                 | 有效密钥文件名前缀 🗝️ |
-| `RATE_LIMITED_KEY_PREFIX` | `keys/key_429_`                                                    | 频率限制密钥文件名前缀 ⏰ |
-| `RATE_LIMITED_KEY_DETAIL_PREFIX` | `logs/key_429_detail_`                                             | 频率限制详细日志文件名前缀 📊 |
-| `SCANNED_SHAS_FILE` | `scanned_shas.txt`                                                 | 已扫描文件SHA记录文件名 📋 |
-| `FILE_PATH_BLACKLIST` | `readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,mock` | 文件路径黑名单，逗号分隔 🚫 |
+| 变量名                              | 默认值                                | 说明 |
+|----------------------------------|------------------------------------|------|
+| `PROXY`                          | 空                                  | 代理服务器地址，格式：`http://proxy:port` 🌐 |
+| `VALID_KEY_PREFIX`               | `keys/keys_valid_`                 | 有效密钥文件名前缀 🗝️ |
+| `RATE_LIMITED_KEY_PREFIX`        | `keys/key_429_`                    | 频率限制密钥文件名前缀 ⏰ |
+| `KEYS_SEND_PREFIX`               | `keys/keys_send_`                  | 发送到外部应用的密钥文件名前缀 🚀 |
+| `VALID_KEY_DETAIL_PREFIX`        | `logs/keys_valid_detail_`          | 详细日志文件名前缀 📝 |
+| `RATE_LIMITED_KEY_DETAIL_PREFIX` | `logs/key_429_detail_`             | 频率限制详细日志文件名前缀 📊 |
+| `VALID_KEY_DETAIL_PREFIX`        | `logs/keys_valid_detail_`          | 有效密钥文件名前缀 🗝️ |
+| `SCANNED_SHAS_FILE`              | `scanned_shas.txt`                 | 已扫描文件SHA记录文件名 📋 |
+| `FILE_PATH_BLACKLIST`            | `readme,docs,doc/,.md,example,...` | 文件路径黑名单，逗号分隔 🚫 |
 
 ### 配置文件示例 💫
 
@@ -190,17 +208,19 @@ deploy_directory/
 GITHUB_TOKENS=ghp_your_token_here_1,ghp_your_token_here_2
 
 # 重要配置（可选修改）
-DATA_PATH=./data
+DATA_PATH=/app/data
 DATE_RANGE_DAYS=730
 QUERIES_FILE=queries.txt
-HAJIMI_CHECK_MODEL=gemini-2.5-flash-preview-05-20
+HAJIMI_CHECK_MODEL=gemini-2.5-flash
+PROXY=
 
 # 高级配置（建议保持默认）
-PROXY=
-VALID_KEY_DETAIL_PREFIX=logs/keys_valid_detail_
 VALID_KEY_PREFIX=keys/keys_valid_
 RATE_LIMITED_KEY_PREFIX=keys/key_429_
+KEYS_SEND_PREFIX=keys/keys_send_
+VALID_KEY_DETAIL_PREFIX=logs/keys_valid_detail_
 RATE_LIMITED_KEY_DETAIL_PREFIX=logs/key_429_detail_
+KEYS_SEND_DETAIL_PREFIX=logs/keys_send_detail_
 SCANNED_SHAS_FILE=scanned_shas.txt
 FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,mock
 ```
@@ -218,6 +238,7 @@ FILE_PATH_BLACKLIST=readme,docs,doc/,.md,example,sample,tutorial,test,spec,demo,
 
 # 基础搜索
 AIzaSy in:file
+AizaSy in:file filename:.env
 ```
 
 > 📖 **搜索语法参考**：[GitHub Code Search Syntax](https://docs.github.com/en/search-github/searching-on-github/searching-code) 📚  
@@ -232,17 +253,6 @@ AIzaSy in:file
 - ✅ 不要将真实的API密钥提交到版本控制 🙈
 - ✅ 定期检查和清理发现的密钥文件 🧹
 - ✅ 运行在安全的网络环境中 🏠
-
-## 📞 故障排除 🩺
-
-| 问题 | 解决方案 |
-|------|----------|
-| GitHub API限流 ⏰ | 添加更多GitHub Token或减少并发数 🔧 |
-| Docker构建失败 💥 | 检查网络连接，清理Docker缓存 🧽 |
-| 找不到密钥 🔍 | 检查queries.txt配置，调整搜索关键词 🎯 |
-| 容器启动失败 🚫 | 检查.env文件配置，确保GitHub Token有效 ✅ |
-
----
 
 💖 **享受使用 Hajimi King 的快乐时光！** 🎉✨🎊
 

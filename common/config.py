@@ -16,7 +16,7 @@ class Config:
     # 获取GitHub tokens列表
     GITHUB_TOKENS = [token.strip() for token in GITHUB_TOKENS_STR.split(',') if token.strip()]
     DATA_PATH = os.getenv('DATA_PATH', '/app/data')
-    PROXY_LIST_STR = os.getenv("PROXY_LIST", "")
+    PROXY_LIST_STR = os.getenv("PROXY", "")
     
     # 解析代理列表，支持格式：http://user:pass@host:port,http://host:port,socks5://user:pass@host:port
     PROXY_LIST = []
